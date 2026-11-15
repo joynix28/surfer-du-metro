@@ -1,0 +1,221 @@
+{
+  "line": "J",
+  "source": "GTFS Île-de-France Mobilités (2026)",
+  "branches": [
+    {
+      "name": "J · Saint-Lazare → Ermont-Eaubonne",
+      "stations": [
+        {
+          "name": "Gare Saint-Lazare",
+          "lat": 48.87747568635212,
+          "lon": 2.3244386552397684
+        },
+        {
+          "name": "Asnières-sur-Seine",
+          "lat": 48.90587474197106,
+          "lon": 2.2832114335873186
+        },
+        {
+          "name": "Bois-Colombes",
+          "lat": 48.91419560591249,
+          "lon": 2.2716490888242244
+        },
+        {
+          "name": "Colombes",
+          "lat": 48.92395845032284,
+          "lon": 2.2593187577109575
+        },
+        {
+          "name": "Le Stade",
+          "lat": 48.93172049557505,
+          "lon": 2.260948512567054
+        },
+        {
+          "name": "Argenteuil",
+          "lat": 48.9468952901277,
+          "lon": 2.257913508915154
+        },
+        {
+          "name": "Sannois",
+          "lat": 48.970881176549405,
+          "lon": 2.263820283806777
+        },
+        {
+          "name": "Ermont - Eaubonne",
+          "lat": 48.98049890628609,
+          "lon": 2.2707541014797794
+        }
+      ]
+    },
+    {
+      "name": "J5 · Saint-Lazare → Mantes via Poissy",
+      "stations": [
+        {
+          "name": "Gare Saint-Lazare",
+          "lat": 48.87747568635212,
+          "lon": 2.3244386552397684
+        },
+        {
+          "name": "Houilles - Carrières-sur-Seine",
+          "lat": 48.92034757911033,
+          "lon": 2.1851757042018707
+        },
+        {
+          "name": "Poissy",
+          "lat": 48.93324983956547,
+          "lon": 2.040804469960689
+        },
+        {
+          "name": "Villennes-sur-Seine",
+          "lat": 48.93983138477974,
+          "lon": 1.999557321396041
+        },
+        {
+          "name": "Vernouillet - Verneuil",
+          "lat": 48.981645855003116,
+          "lon": 1.9829377621754614
+        },
+        {
+          "name": "Les Clairières de Verneuil",
+          "lat": 48.99266997269272,
+          "lon": 1.9552440340828119
+        },
+        {
+          "name": "Les Mureaux",
+          "lat": 48.99259097971094,
+          "lon": 1.9134674211236111
+        },
+        {
+          "name": "Aubergenville Élisabethville",
+          "lat": 48.97233225408568,
+          "lon": 1.8489603900783327
+        },
+        {
+          "name": "Épône - Mézières",
+          "lat": 48.96340497197892,
+          "lon": 1.809133387838305
+        },
+        {
+          "name": "Mantes Station",
+          "lat": 48.98360892717879,
+          "lon": 1.7151334567152097
+        },
+        {
+          "name": "Mantes-la-Jolie",
+          "lat": 48.989295021419494,
+          "lon": 1.703836824856348
+        }
+      ]
+    },
+    {
+      "name": "J · Saint-Lazare → Mantes via Conflans",
+      "stations": [
+        {
+          "name": "Gare Saint-Lazare",
+          "lat": 48.87747568635212,
+          "lon": 2.3244386552397684
+        },
+        {
+          "name": "Argenteuil",
+          "lat": 48.9468952901277,
+          "lon": 2.257913508915154
+        },
+        {
+          "name": "Val d'Argenteuil",
+          "lat": 48.95065749524003,
+          "lon": 2.2326940500534516
+        },
+        {
+          "name": "Cormeilles-en-Parisis",
+          "lat": 48.9686435877584,
+          "lon": 2.1930511780913897
+        },
+        {
+          "name": "La Frette - Montigny",
+          "lat": 48.97988373233733,
+          "lon": 2.180341866372171
+        },
+        {
+          "name": "Herblay",
+          "lat": 48.990136140429954,
+          "lon": 2.1622316587721904
+        },
+        {
+          "name": "Conflans-Sainte-Honorine",
+          "lat": 48.99691942423472,
+          "lon": 2.09871661352047
+        },
+        {
+          "name": "Conflans Fin d'Oise",
+          "lat": 48.991156287258484,
+          "lon": 2.0746499245710193
+        },
+        {
+          "name": "Maurecourt",
+          "lat": 48.986862412057214,
+          "lon": 2.059634534011659
+        },
+        {
+          "name": "Andrésy",
+          "lat": 48.974620752632916,
+          "lon": 2.0486677678528
+        },
+        {
+          "name": "Chanteloup-les-Vignes",
+          "lat": 48.97035707590211,
+          "lon": 2.0276211497651646
+        },
+        {
+          "name": "Triel-sur-Seine",
+          "lat": 48.98141600700941,
+          "lon": 2.005709444143668
+        },
+        {
+          "name": "Vaux-sur-Seine",
+          "lat": 49.0073550143858,
+          "lon": 1.9630264473162566
+        },
+        {
+          "name": "Thun le Paradis",
+          "lat": 49.006673442207415,
+          "lon": 1.919170589720022
+        },
+        {
+          "name": "Meulan - Hardricourt",
+          "lat": 49.00581615609435,
+          "lon": 1.9021289902435004
+        },
+        {
+          "name": "Juziers",
+          "lat": 48.99224048747195,
+          "lon": 1.8449525722587152
+        },
+        {
+          "name": "Gargenville",
+          "lat": 48.983003872761415,
+          "lon": 1.8090110590166268
+        },
+        {
+          "name": "Issou - Porcheville",
+          "lat": 48.9793069192499,
+          "lon": 1.7838404356830648
+        },
+        {
+          "name": "Limay",
+          "lat": 48.98420212754174,
+          "lon": 1.7474125098984148
+        },
+        {
+          "name": "Mantes Station",
+          "lat": 48.98360892717879,
+          "lon": 1.7151334567152097
+        },
+        {
+          "name": "Mantes-la-Jolie",
+          "lat": 48.989295021419494,
+          "lon": 1.703836824856348
+        }
+      ]
+    }
+  ]
+}

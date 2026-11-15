@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#122a4a" />
+<meta name="description" content="Runner 3D dans l’Île-de-France : ligne J, gares réelles, sans publicité." />
+<link rel="icon" href="./favicon.ico" />
+<title>Métro IDF</title>
+<script>window.__MANIFEST={"js":["./assets/index-B75ysl6P.js",572611]}</script>
+<style>
+:root{--ink:#0e1219;--sky:#1f3f6b;--gold:#ffcf3f;--red:#d1402f;--plum:#6c4b9e;--panel:rgba(10,18,32,.82);--line:rgba(255,255,255,.16)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#122a4a;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"DejaVu Sans",sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#game{position:fixed;top:0;left:0;right:0;bottom:0;display:block;width:100vw;height:100vh}
+#ui{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;touch-action:none}
+/* loading screen: plain HTML+CSS, visible before any script arrives */
+#loader{position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:linear-gradient(#122a4a,#2f5f8f 55%,#e8c79a);transition:opacity .35s}
+#loader.out{opacity:0;pointer-events:none}
+#loader h1{margin:0;font-size:clamp(30px,7vw,54px);font-weight:900;letter-spacing:.04em;text-shadow:0 4px 0 rgba(0,0,0,.18)}
+.track-ico{width:120px;height:46px;position:relative}
+.track-ico i{position:absolute;bottom:0;width:120px;height:6px;border-radius:3px;background:rgba(255,255,255,.55)}
+.track-ico b{position:absolute;bottom:8px;left:0;width:34px;height:34px;border-radius:9px;background:var(--gold);box-shadow:0 3px 0 rgba(0,0,0,.2);animation:hop .7s ease-in-out infinite alternate}
+@keyframes hop{0%{transform:translate(0,0)}50%{transform:translate(43px,-12px)}100%{transform:translate(86px,0)}}
+.bar{width:min(320px,74vw);height:12px;border-radius:6px;background:rgba(0,0,0,.18);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:#fff;border-radius:6px;transform:scaleX(0);transform-origin:left;transition:transform .15s linear}
+#ld-text{font-size:15px;opacity:.92;font-variant-numeric:tabular-nums;min-height:1.2em}
+/* HUD */
+.hud{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;opacity:0;transition:opacity .2s;overflow:hidden}
+.hud.on{opacity:1}
+.hud-left{position:absolute;left:calc(12px + env(safe-area-inset-left));top:calc(12px + env(safe-area-inset-top));display:flex;gap:8px;pointer-events:auto}
+.icon-btn{width:44px;height:44px;border-radius:14px;border:0;background:var(--panel);color:#fff;display:grid;place-items:center;cursor:pointer}
+.icon-btn svg{width:22px;height:22px;fill:currentColor}
+.hud-right{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(10px + env(safe-area-inset-top));text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.score{font-size:clamp(24px,5.4vw,34px);font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.04em;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.hud-row{display:flex;gap:8px;align-items:center}
+.mult,.coins{background:var(--panel);border-radius:12px;padding:5px 10px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.mult.hot{background:var(--red)}
+.coins.pop{animation:pop .22s ease-out}
+@keyframes pop{50%{transform:scale(1.18)}}
+.coin-ico{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff4b8,var(--gold) 55%,#d68a00);box-shadow:0 0 8px rgba(255,194,61,.8)}
+.powers{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.pw{position:relative;display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:12px;padding:5px 10px 8px;font-size:13px;font-weight:700;overflow:hidden;min-width:120px}
+.pw i{font-style:normal;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:900}
+.pw.magnet i{background:var(--red)}.pw.shoes i{background:#2fb36b}.pw.double i{background:#f2a516}
+.pw em{position:absolute;left:0;bottom:0;height:3px;width:100%;background:#fff;transform-origin:left}
+.hint{position:absolute;left:50%;max-width:calc(100% - 24px);overflow:hidden;top:calc(17% + env(safe-area-inset-top));transform:translate(-50%,10px);background:var(--panel);padding:12px 20px;border-radius:16px;font-size:clamp(17px,4.4vw,22px);font-weight:800;opacity:0;transition:opacity .2s,transform .2s;white-space:nowrap}
+.hint.on{opacity:1;transform:translate(-50%,0)}
+.toast{position:absolute;left:50%;top:30%;transform:translateX(-50%) scale(.9);font-size:clamp(18px,4.6vw,26px);font-weight:900;text-shadow:0 3px 0 rgba(0,0,0,.3);opacity:0;transition:opacity .18s,transform .18s;text-align:center;width:90%}
+.toast.on{opacity:1;transform:translateX(-50%) scale(1)}
+.flash{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;opacity:0}
+.flash.hit{background:radial-gradient(ellipse at center,transparent 45%,rgba(255,60,60,.55));animation:fl .45s ease-out}
+.flash.crash{background:radial-gradient(ellipse at center,rgba(255,255,255,.4),rgba(255,40,40,.65));animation:fl .7s ease-out}
+.flash.power{background:radial-gradient(ellipse at center,rgba(255,255,255,.35),transparent 70%);animation:fl .35s ease-out}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+/* station board and intro wall */
+.station{position:absolute;left:50%;top:calc(11.5% + env(safe-area-inset-top));max-width:calc(100% - 24px);transform:translate(-50%,-10px);display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:14px;background:rgba(11,39,72,.88);border:1px solid rgba(255,255,255,.18);opacity:0;transition:opacity .22s,transform .22s;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.station.on{opacity:1;transform:translate(-50%,0)}
+.station .line{width:36px;height:36px;border-radius:50%;background:var(--plum);display:grid;place-items:center;font-weight:900;font-size:19px;color:#fff;box-shadow:inset 0 0 0 3px #fff}
+.station .names{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+.station b{font-size:16px;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis}
+.station small{font-size:10.5px;opacity:.82;letter-spacing:.09em}
+.screen.intro{flex-direction:column;background:linear-gradient(to bottom,rgba(4,8,14,.62) 0%,rgba(4,8,14,0) 24%,rgba(4,8,14,0) 60%,rgba(4,8,14,.74) 100%);align-items:stretch;justify-content:space-between;padding:calc(20px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom))}
+.intro-mark{display:flex;flex-direction:column;gap:2px;text-shadow:0 3px 14px rgba(0,0,0,.65)}
+.intro-mark .line{width:40px;height:40px;border-radius:50%;background:var(--plum);display:grid;place-items:center;font-weight:900;font-size:21px;color:#fff;box-shadow:inset 0 0 0 3px #fff;margin-bottom:8px}
+.intro-mark b{font-size:clamp(26px,7.4vw,40px);font-weight:900;letter-spacing:.02em;line-height:1}
+.intro-mark small{font-size:11px;letter-spacing:.24em;opacity:.82;margin-top:4px}
+.intro-skip{align-self:center;font-size:13px;letter-spacing:.06em;opacity:.8;padding:11px 20px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(8,14,24,.45);animation:ips 2.4s ease-in-out infinite}
+@keyframes ips{50%{opacity:.45}}
+/* screens */
+.screen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;display:none;align-items:center;justify-content:center;padding:16px}
+.screen.on{display:flex}
+.screen.start{align-items:flex-end;padding-bottom:calc(6vh + env(safe-area-inset-bottom))}
+.screen.pause,.screen.over{background:rgba(10,16,30,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.panel{width:420px;max-width:calc(100vw - 32px);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:22px 22px 18px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:stretch;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.panel h1{margin:0;font-size:clamp(32px,8vw,46px);font-weight:900;letter-spacing:.03em}
+.panel h2{margin:0;font-size:28px;font-weight:900}
+.tag{margin:-6px 0 0;opacity:.85}
+.stats,.result{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats div,.result div{background:rgba(255,255,255,.08);border-radius:14px;padding:8px}
+.stats small,.result small{display:block;opacity:.75;font-size:12px}
+.stats b,.result b{font-size:22px;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+.big{border:0;border-radius:16px;padding:14px;font-size:20px;font-weight:900;background:linear-gradient(#ffd25e,#f2a516);color:#3a2500;box-shadow:0 4px 0 #b97700;cursor:pointer}
+.big:active{transform:translateY(2px);box-shadow:0 2px 0 #b97700}
+.ghost{border:1px solid var(--line);border-radius:14px;padding:11px;font-size:16px;font-weight:700;background:transparent;cursor:pointer}
+.ctrl{margin:0;font-size:13px;opacity:.8;line-height:1.5}
+.row{display:flex;gap:8px;justify-content:center}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:999px;padding:7px 14px;font-size:14px;cursor:pointer}
+.chip svg{width:18px;height:18px;fill:currentColor}
+.badge{display:none;align-self:center;background:var(--red);border-radius:999px;padding:4px 14px;font-weight:900;animation:pop .5s ease-out 2}
+.badge.on{display:block}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+</style>
+  </head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui"></div>
+<div id="loader">
+  <h1 id="ld-title">Métro IDF</h1>
+  <div class="track-ico"><i></i><b></b></div>
+  <div class="bar"><i id="ld-bar"></i></div>
+  <div id="ld-text">0%</div>
+</div>
+<script>
+/* Boot: downloads the game script while drawing real progress. Sizes come from a manifest written at
+   build time. Everything else (textures, models, character) is generated by the game at start-up. */
+(function () {
+  var M = window.__MANIFEST || null;
+  var lang = 'fr', saved = null;
+  try { saved = JSON.parse(localStorage.getItem('metroidf.lang')); } catch (e) {}
+  if (saved === 'en') lang = 'en';
+  var T = { fr: ['Métro IDF', 'Chargement', 'Préparation…'], en: ['Métro IDF', 'Loading', 'Getting ready…'] }[lang];
+  document.getElementById('ld-title').textContent = T[0];
+  document.title = T[0];
+  var bar = document.getElementById('ld-bar'), txt = document.getElementById('ld-text');
+  var shown = 0, label = T[1];
+  function set(p, l) {
+    if (l) label = l;
+    if (p > shown) shown = Math.min(1, p);
+    bar.style.transform = 'scaleX(' + shown + ')';
+    txt.textContent = label + ' ' + Math.floor(shown * 100) + '%';
+  }
+  set(0);
+  var total = M ? M.js[1] : 0, got = 0;
+  function tick() { if (total) set(0.9 * got / total); }
+  function stream(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + url);
+      if (!r.body || !r.body.getReader) return r.arrayBuffer().then(function (b) { got = b.byteLength; tick(); return b; });
+      var rd = r.body.getReader(), parts = [], n = 0;
+      function pump() {
+        return rd.read().then(function (x) {
+          if (x.done) { var all = new Uint8Array(n), o = 0; for (var i = 0; i < parts.length; i++) { all.set(parts[i], o); o += parts[i].length; } return all.buffer; }
+          parts.push(x.value); n += x.value.length; got = n; tick(); return pump();
+        });
+      }
+      return pump();
+    });
+  }
+  function fail(msg) { txt.textContent = msg || 'Erreur'; bar.style.background = '#d1402f'; }
+  window.__boot = {
+    set: set,
+    done: function () { set(1); var e = document.getElementById('loader'); e.className = 'out'; setTimeout(function () { e.remove(); }, 400); },
+    fail: fail
+  };
+  if (M) stream(M.js[0]).then(function (b) {
+    var s = document.createElement('script');
+    s.type = 'module';
+    s.src = URL.createObjectURL(new Blob([b], { type: 'text/javascript' }));
+    s.onerror = function () { fail('Erreur de chargement'); };
+    document.body.appendChild(s);
+  }).catch(function (e) { fail(String(e)); });
+})();
+</script>
+</body>
+</html>

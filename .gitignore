@@ -1,0 +1,17 @@
+# web
+web/node_modules/
+web/dist/
+node_modules/
+dist/
+
+# android
+.gradle/
+build/
+app/build/
+local.properties
+keys/
+*.jks
+*.keystore
+
+# system
+.DS_Store

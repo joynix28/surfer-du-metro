@@ -57,7 +57,7 @@ export class UI {
       </div>
       <div class="flash" id="flash"></div>
       <section class="screen intro" id="s-intro">
-        <div class="intro-mark"><span class="line">J</span><b data-k="title"></b><small>LIGNE J · ÎLE-DE-FRANCE</small></div>
+        <div class="intro-mark"><span class="line">J</span><b data-k="title"></b><small>ÎLE-DE-FRANCE · RER &amp; MÉTRO</small></div>
         <div class="intro-skip" id="intro-skip" data-k="skip"></div>
       </section>
       <section class="screen start" id="s-start">

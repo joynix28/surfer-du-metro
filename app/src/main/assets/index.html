@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#122a4a" />
 <meta name="description" content="Runner 3D dans l’Île-de-France : ligne J, gares réelles, sans publicité." />
 <link rel="icon" href="./favicon.ico" />
-<title>Métro IDF</title>
-<script>window.__MANIFEST={"js":["./assets/index-C6slIQ4h.js",586510]}</script>
+<title>Surfer Du Metro</title>
+<script>window.__MANIFEST={"js":["./assets/index-JSDMjZSs.js",586529]}</script>
 <style>
 :root{--ink:#0e1219;--sky:#1f3f6b;--gold:#ffcf3f;--red:#d1402f;--plum:#6c4b9e;--panel:rgba(10,18,32,.82);--line:rgba(255,255,255,.16)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -75,7 +75,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#122a4a;color:#fff;fon
 .screen.start{align-items:flex-end;padding-bottom:calc(6vh + env(safe-area-inset-bottom))}
 .screen.pause,.screen.over{background:rgba(10,16,30,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .panel{width:420px;max-width:calc(100vw - 32px);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:22px 22px 18px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:stretch;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.panel h1{margin:0;font-size:clamp(32px,8vw,46px);font-weight:900;letter-spacing:.03em}
+.panel h1{margin:0;font-size:clamp(26px,7.2vw,40px);font-weight:900;letter-spacing:.02em;line-height:1.1}
 .panel h2{margin:0;font-size:28px;font-weight:900}
 .tag{margin:-6px 0 0;opacity:.85}
 .stats,.result{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -101,7 +101,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 <canvas id="game"></canvas>
 <div id="ui"></div>
 <div id="loader">
-  <h1 id="ld-title">Métro IDF</h1>
+  <h1 id="ld-title">Surfer Du Metro</h1>
   <div class="track-ico"><i></i><b></b></div>
   <div class="bar"><i id="ld-bar"></i></div>
   <div id="ld-text">0%</div>
@@ -114,7 +114,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
   var lang = 'fr', saved = null;
   try { saved = JSON.parse(localStorage.getItem('metroidf.lang')); } catch (e) {}
   if (saved === 'en') lang = 'en';
-  var T = { fr: ['Métro IDF', 'Chargement', 'Préparation…'], en: ['Métro IDF', 'Loading', 'Getting ready…'] }[lang];
+  var T = { fr: ['Surfer Du Metro', 'Chargement', 'Préparation…'], en: ['Surfer Du Metro', 'Loading', 'Getting ready…'] }[lang];
   document.getElementById('ld-title').textContent = T[0];
   document.title = T[0];
   var bar = document.getElementById('ld-bar'), txt = document.getElementById('ld-text');

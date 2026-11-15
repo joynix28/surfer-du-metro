@@ -4,7 +4,7 @@ import { load, save } from './storage';
 export type Lang = 'fr' | 'en';
 const S = {
   fr: {
-    title: 'Métro IDF', tagline: 'Évitez les rames. Semez le contrôleur.', play: 'JOUER', best: 'Record', coinsTotal: 'Jetons',
+    title: 'Surfer Du Metro', tagline: 'Évitez les rames. Semez le contrôleur.', play: 'JOUER', best: 'Record', coinsTotal: 'Jetons',
     ctrlKeys: '← → / A D changer de voie · ↑ W Espace sauter · ↓ S glisser · Échap pause',
     ctrlTouch: 'Glisse à gauche/droite pour changer de voie · en haut pour sauter · en bas pour glisser',
     tapToStart: 'Touche l’écran pour commencer', paused: 'Pause', resume: 'Reprendre', restart: 'Recommencer', home: 'Accueil',
@@ -18,7 +18,7 @@ const S = {
     mult: 'Multiplicateur', meters: 'm', lang: 'Langue', skip: 'Toucher pour passer', keys: 'clés', keyOne: 'clé', revive: 'Sauver', board: 'Planche',
   },
   en: {
-    title: 'Métro IDF', tagline: 'Dodge the trains. Lose the guard.', play: 'PLAY', best: 'Best', coinsTotal: 'Tokens',
+    title: 'Surfer Du Metro', tagline: 'Dodge the trains. Lose the guard.', play: 'PLAY', best: 'Best', coinsTotal: 'Tokens',
     ctrlKeys: '← → / A D change lane · ↑ W Space jump · ↓ S slide · Esc pause',
     ctrlTouch: 'Swipe left/right to change lane · up to jump · down to slide',
     tapToStart: 'Tap to start', paused: 'Paused', resume: 'Resume', restart: 'Restart', home: 'Home',

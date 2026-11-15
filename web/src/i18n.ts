@@ -16,6 +16,8 @@ const S = {
     hintRamp: 'Monte la rampe pour courir sur la rame',
     magnet: 'Aimant', shoes: 'Chaussures à ressorts', double: 'Score doublé', careful: 'Attention ! Encore un choc et tu es attrapé', mute: 'Couper le son', sound: 'Son',
     mult: 'Multiplicateur', meters: 'm', lang: 'Langue', skip: 'Toucher pour passer', keys: 'clés', keyOne: 'clé', revive: 'Sauver', board: 'Planche',
+    shop: 'Boutique', tabChars: 'Persos', tabBoards: 'Planches', tabThemes: 'Décors', tabBox: 'Surprise',
+    box: 'Boîte surprise', equip: 'Équiper', equipped: 'Équipé', notEnough: 'Pas assez de jetons', youGot: 'Gagné :', coinOne: 'jeton', fury: 'FURIE !', noBoard: 'Aucune planche',
   },
   en: {
     title: 'Surfer Du Metro', tagline: 'Dodge the trains. Lose the guard.', play: 'PLAY', best: 'Best', coinsTotal: 'Tokens',
@@ -29,7 +31,9 @@ const S = {
     hintLaneKeys: 'Press ← → to dodge', hintLaneTouch: 'Swipe left or right to dodge',
     hintRamp: 'Run up the ramp onto the train',
     magnet: 'Magnet', shoes: 'Spring shoes', double: 'Double score', careful: 'Careful! One more hit and you are caught', mute: 'Mute', sound: 'Sound',
-    mult: 'Multiplier', meters: 'm', lang: 'Language', skip: 'Tap to skip', keys: 'keys', keyOne: 'key', revive: 'Save me', board: 'Hoverboard',
+    mult: 'Multiplier', meters: 'm', lang: 'Language', skip: 'Tap to skip', keys: 'keys', keyOne: 'key', revive: 'Save me', board: 'Skateboard',
+    shop: 'Shop', tabChars: 'Characters', tabBoards: 'Boards', tabThemes: 'Scenery', tabBox: 'Surprise',
+    box: 'Mystery box', equip: 'Equip', equipped: 'Equipped', notEnough: 'Not enough coins', youGot: 'You got:', coinOne: 'coin', fury: 'FURY!', noBoard: 'No skateboard',
   },
 };
 export type Key = keyof (typeof S)['fr'];

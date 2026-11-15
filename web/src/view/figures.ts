@@ -2,9 +2,9 @@
 // The cop is a static figure placed on the platforms; the one that chases is drawn in the intro.
 import * as THREE from 'three';
 
-export type FigureState = 'idle' | 'run' | 'air' | 'slide' | 'stumble' | 'die' | 'spray';
+export type FigureState = 'idle' | 'run' | 'air' | 'slide' | 'stumble' | 'die' | 'spray' | 'cuffed';
 
-const M = {
+const BASE = {
   hoodie: new THREE.MeshLambertMaterial({ color: 0x2e7f8c }),
   hoodieDark: new THREE.MeshLambertMaterial({ color: 0x256a76 }),
   trim: new THREE.MeshLambertMaterial({ color: 0xffcf3f }),
@@ -48,10 +48,26 @@ export class Figure {
   private phase = 0;
   private t = 0;
   private hard = 0;
+  mats!: Record<string, THREE.MeshLambertMaterial>;
   /** Where the right hand is, so a prop (spray can) can be held. */
   hand = new THREE.Group();
 
   constructor() {
+    // one set of materials per figure, so a character can be recoloured without touching the others
+    const M = (this.mats = {
+      hoodie: BASE.hoodie.clone(),
+      hoodieDark: BASE.hoodieDark.clone(),
+      trim: BASE.trim.clone(),
+      pants: BASE.pants.clone(),
+      pantsDark: BASE.pantsDark.clone(),
+      skin: BASE.skin.clone(),
+      shoe: BASE.shoe.clone(),
+      sole: BASE.sole.clone(),
+      bag: BASE.bag.clone(),
+      cap: BASE.cap.clone(),
+      capDark: BASE.capDark.clone(),
+      hair: BASE.hair.clone(),
+    });
     const g = this.root;
     g.add(this.tilt);
     this.tilt.add(this.hips);
@@ -164,6 +180,19 @@ export class Figure {
     }
   }
 
+  /** Recolours this figure (the shop's characters are colour sets). */
+  setSkin(s: { hood: string; hoodDark: string; cap: string; capDark: string; pants: string; pantsDark: string; bag: string; skin: string; trim: string }) {
+    this.mats.hoodie.color.set(s.hood);
+    this.mats.hoodieDark.color.set(s.hoodDark);
+    this.mats.trim.color.set(s.trim);
+    this.mats.pants.color.set(s.pants);
+    this.mats.pantsDark.color.set(s.pantsDark);
+    this.mats.bag.color.set(s.bag);
+    this.mats.skin.color.set(s.skin);
+    this.mats.cap.color.set(s.cap);
+    this.mats.capDark.color.set(s.capDark);
+  }
+
   reset() {
     this.root.position.set(0, 0, 0);
     this.root.rotation.set(0, 0, 0);
@@ -254,6 +283,23 @@ export class Figure {
       this.torso.rotation.set(0.06, -0.16, 0);
       this.head.rotation.y = -0.22;
       tilt = 0.03;
+    } else if (state === 'cuffed') {
+      // hands behind the back, head down, caught
+      legA.rotation.x = 0.06;
+      legB.rotation.x = -0.06;
+      kneeA.rotation.x = -0.08;
+      kneeB.rotation.x = -0.1;
+      armA.rotation.x = 0.95;
+      armB.rotation.x = 0.95;
+      armA.rotation.z = -0.5;
+      armB.rotation.z = 0.5;
+      elbA.rotation.x = -1.5;
+      elbB.rotation.x = -1.5;
+      hipY = 0.88;
+      this.hips.position.x = 0;
+      this.torso.rotation.set(0.16, 0, 0);
+      this.head.rotation.y = 0;
+      tilt = 0.1;
     } else if (state === 'stumble') {
       this.hard = 0.5;
       legA.rotation.x = 0.5;

@@ -155,6 +155,10 @@ export class Intro {
     this.group.visible = false;
   }
 
+  setSkin(sk: Parameters<Figure['setSkin']>[0]) {
+    this.runner.setSkin(sk);
+  }
+
   takeCue(): IntroCue {
     const c = this.cue;
     this.cue = null;

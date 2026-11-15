@@ -38,6 +38,20 @@ Pas de pub, pas de compte, pas de connexion. Le jeu tient dans 2 Mo et tourne ho
 - difficulté qui monte avec la distance, multiplicateur de score jusqu'à ×6 ;
 - **collisions instantanées**, deux chocs rapprochés et le contrôleur t'attrape.
 
+**Boutique, inventaire et personnages**
+- **boutique** accessible depuis l'écran-titre (et la pause) : personnages, planches, décors, boîte surprise ;
+- **6 personnages** à débloquer (couleurs de capuche, casquette, sac) ;
+- **5 planches** (Classique, Coucher de soleil, Néon, Or, Graffiti) ;
+- **5 décors** qui changent l'ambiance du monde : Paris, Néon, Automne, Hiver, Été ;
+- **boîte surprise** : un objet non possédé au hasard (ou des jetons si tout est collectionné) ;
+- tout est sauvegardé sur le téléphone.
+
+**Planche et furie**
+- les planches ramassées en course vont dans l'**inventaire** ;
+- **double-tap** en course : tu sors une planche → **furie** de 9 s, **vitesse doublée** et
+  aucune collision. Le compteur de planches est dans le HUD ;
+- la planche équipée change de couleur (pont et bande).
+
 **Clés et sauvetage**
 - des clés dorées traînent le long des voies ;
 - après une chute, tu peux **repartir au même endroit** avec une clé ;
@@ -62,6 +76,15 @@ Pas de pub, pas de compte, pas de connexion. Le jeu tient dans 2 Mo et tourne ho
 - trois livrées (Transilien crème/violet, TGV gris/bleu, métro blanc/turquoise) ;
 - nez arrondi, pare-brise incliné, bandeau de destination, phares cerclés, pantographe, bogies ;
 - trains croiseurs qui **roulent à la vitesse du joueur**.
+
+**Sons d'ambiance**
+- jingle de gare et annonce étouffée à chaque arrivée, **bips de fermeture des portes** ;
+- **brouhaha** de quai, **train qui passe** avec souffle, roulement des rames ;
+- le tout synthétisé, aucun fichier audio.
+
+**Arrestation**
+- quand le contrôleur t'attrape, une courte scène : l'agent s'approche, tu passes **menotté**
+  (mains dans le dos, menottes visibles), puis l'écran de fin.
 
 **Ouverture**
 - une vraie scène 3D : le personnage s'approche d'une palissade, secoue sa bombe et tagge
@@ -88,6 +111,7 @@ Le tour complet est joué en boucle. Les noms de gares viennent du **GTFS offici
 | Ouverture | Course | Écran-titre |
 |---|---|---|
 | ![intro](docs/intro.jpg) | ![course](docs/run.jpg) | ![titre](docs/title.jpg) |
+| ![boutique](docs/shop.jpg) | ![furie](docs/fury.jpg) | |
 
 ## Installer
 

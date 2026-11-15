@@ -46,6 +46,7 @@ export class Sim {
   power: Record<PowerKind, number> = { magnet: 0, shoes: 0, double: 0, board: 0 };
   keys = 0; // keys picked up in this run
   invT = 0; // seconds of invincibility after a revive
+  furyT = 0; // skateboard fury: double speed, no collisions
   baseMult = 1;
   // world
   obs: Ob[] = [];
@@ -85,6 +86,7 @@ export class Sim {
     this.keyList.length = 0;
     this.keys = 0;
     this.invT = 0;
+    this.furyT = 0;
     this.nextKeyAt = 260;
     this.events.length = 0;
     Object.assign(this, {
@@ -240,6 +242,10 @@ export class Sim {
     this.stumbleSlow = Math.max(0, this.stumbleSlow - dt);
     this.ignoreT = Math.max(0, this.ignoreT - dt);
     this.invT = Math.max(0, this.invT - dt);
+    if (this.furyT > 0) {
+      this.furyT = Math.max(0, this.furyT - dt);
+      if (this.furyT === 0) this.events.push({ type: 'furyEnd' });
+    }
     this.coyoteT = Math.max(0, this.coyoteT - dt);
     this.jumpBufT = Math.max(0, this.jumpBufT - dt);
     this.coinStreakT = Math.max(0, this.coinStreakT - dt);
@@ -253,9 +259,9 @@ export class Sim {
     }
     // speed
     const base = this.speedOverride || speedAt(this.d);
-    this.speed = base * (this.stumbleSlow > 0 ? 0.82 : 1);
+    this.speed = base * (this.furyT > 0 ? 1.9 : 1) * (this.stumbleSlow > 0 ? 0.82 : 1);
     this.d += this.speed * dt;
-    const mult = 1 + Math.min(5, Math.floor(this.d / 800));
+    const mult = 1 + Math.min(5, Math.floor(this.d / 600));
     if (mult !== this.baseMult) {
       this.baseMult = mult;
       this.events.push({ type: 'level', mult });
@@ -342,7 +348,7 @@ export class Sim {
   }
 
   private collide(px: number, py: number, pd: number, ph: number) {
-    if (this.invT > 0) return;
+    if (this.invT > 0 || this.furyT > 0) return;
     const h = this.bodyH;
     for (const o of this.obs) {
       if (o.d0 > this.d + 8 || o.d1 < this.d - 8) continue;
@@ -437,14 +443,6 @@ export class Sim {
   }
 
   private crash(kind: ObKind | 'caught', o?: Ob) {
-    if (this.power.board > 0) {
-      // the board takes the hit: one crash absorbed, then it is gone
-      this.power.board = 0;
-      this.invT = 1.4;
-      if (o) { this.ignoreId = o.id; this.ignoreT = 1.4; }
-      this.events.push({ type: 'boardBreak', x: this.x, y: this.y });
-      return;
-    }
     if (this.invincible) {
       // test switch: count it, then run through
       this.events.push({ type: 'stumble', x: this.x, y: this.y });
@@ -454,6 +452,14 @@ export class Sim {
     this.alive = false;
     this.slideT = 0;
     this.events.push({ type: 'crash', kind, x: this.x, y: this.y });
+  }
+
+  /** Skateboard fury: double speed and nothing can hit you for a few seconds. */
+  fury(sec = 9) {
+    if (!this.alive) return;
+    this.furyT = sec;
+    this.invT = Math.max(this.invT, sec);
+    this.events.push({ type: 'fury', x: this.x, y: this.y });
   }
 
   /** Back on your feet after a crash, keys spent: clear the road just ahead. */
@@ -531,8 +537,13 @@ export class Sim {
       const p = this.powers[i];
       const x = laneX(p.lane);
       if (Math.abs(p.d - this.d) < 1.0 && Math.abs(x - this.x) < 1.1 && p.y > this.y - 0.5 && p.y < this.y + h + 0.6) {
-        this.power[p.kind] = POWER_TIME[p.kind];
-        this.events.push({ type: 'power', kind: p.kind, x, y: p.y });
+        if (p.kind === 'board') {
+          // skateboards go to the bag, they are launched with a double tap
+          this.events.push({ type: 'board', x, y: p.y });
+        } else {
+          this.power[p.kind] = POWER_TIME[p.kind];
+          this.events.push({ type: 'power', kind: p.kind, x, y: p.y });
+        }
         this.freePowers.push(p);
         this.powers.splice(i, 1);
       }

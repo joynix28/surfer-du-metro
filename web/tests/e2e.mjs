@@ -239,7 +239,7 @@ check('power-ups: double score, spring shoes, magnet all apply', await p.ev(`(()
   const R = __run, S = R.sim; __t.fresh(1); R.power('double', 1, 5); R.power('shoes', 1, 9); R.power('magnet', 1, 13); R.step(1.3, 1 / 120);
   return S.power.double > 0 && S.power.shoes > 0 && S.power.magnet > 0 && S.mult === 2;
 })()`));
-check('speed rises with distance and stays capped', await p.ev(`(() => { const R = __run, S = R.sim; R.start({ seed: 2, noSpawn: true }); const v0 = S.speed; S.d = 3000; R.step(0.1); const v1 = S.speed; S.d = 40000; R.step(0.1); return v1 > v0 + 5 && S.speed <= 27.01; })()`));
+check('speed rises with distance and stays capped', await p.ev(`(() => { const R = __run, S = R.sim; R.start({ seed: 2, noSpawn: true }); const v0 = S.speed; S.d = 3000; R.step(0.1); const v1 = S.speed; S.d = 40000; R.step(0.1); return v1 > v0 + 5 && S.speed <= 34.01; })()`));
 
 // ---------------------------------------------------------------- map: always a way through
 for (const seed of [1, 2, 3, 4, 5, 42, 1234]) {

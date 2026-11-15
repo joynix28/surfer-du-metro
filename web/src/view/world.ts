@@ -10,6 +10,7 @@ import { waterTexture, distantTexture } from './france';
 import { buildings, treeProto, benchProto, type BuildingDef } from './buildings';
 import { trainProto, noseProto, lowBarrierProto, hurdleProto, overheadProto, tokenProto, graffitiProto, canopyProto, bridgeProto, ediculeProto, keyProto, eiffelProto } from './props';
 import { copProto } from './figures';
+import type { Theme } from '../meta';
 import { StationSigns } from './signs';
 import { Intro, type IntroCue } from './intro3d';
 import { LANE_W, laneX, CAR_LEN, CAR_GAP, VIEW_AHEAD, OB } from '../config';
@@ -67,6 +68,9 @@ export class World {
   private bridges: Instanced;
   private edicules: Instanced;
   private eiffel: Instanced;
+  private copView: THREE.Object3D;
+  private arrestT = 0;
+  private theme: Theme | null = null;
   private grands: Instanced;
   private skyline: Instanced;
   private trees: Instanced;
@@ -98,6 +102,7 @@ export class World {
   private rainOn = false;
   private rainLevel = 0;
   private sunFactor = 1;
+  private leafTint = new THREE.Color(1, 1, 1);
   private rainData: Float32Array;
   private nightFog = new THREE.Color('#1c2536');
   private dayFog = new THREE.Color('#e9dcc8');
@@ -168,6 +173,9 @@ export class World {
     const far = new THREE.MeshLambertMaterial({ map: distantTexture(), color: 0xb9b5ab });
     this.skyline = new Instanced(new THREE.Mesh(new THREE.BoxGeometry(14, 1, 14), far), 10, s, { name: 'skyline' });
     this.signs = new StationSigns(s);
+    this.copView = copProto();
+    this.copView.visible = false;
+    s.add(this.copView);
     this.intro = new Intro(s);
 
     // rain: short vertical dashes in a box that follows the camera
@@ -295,6 +303,29 @@ export class World {
         fx.burst(ev.x, ev.y + 1, -0.6, 28, 0xffb347, { speed: 6, up: 2, size: 0.6, life: 0.6, grav: 5 });
         break;
     }
+  }
+
+  /** The arrest: an officer walks up behind the runner and cuffs him. */
+  arrest() {
+    this.arrestT = 2.6;
+    const p = this.player.root.position;
+    this.copView.visible = true;
+    this.copView.position.set(p.x - 1.0, 0.02, 3.4);
+    this.copView.rotation.set(0, 0, 0);
+    this.player.setArrested(true);
+  }
+  endArrest() {
+    this.arrestT = 0;
+    this.copView.visible = false;
+    this.player.setArrested(false);
+  }
+  setIntroSkin(sk: Parameters<PlayerView['figure']['setSkin']>[0]) {
+    this.intro.setSkin(sk);
+  }
+  setTheme(t: Theme) {
+    this.theme = t;
+    this.leafTint.set(t.leaf);
+    this.zone = null; // repaint the current zone with the new palette
   }
 
   /** Plays the opening scene instead of the title-screen idle shot. */
@@ -461,6 +492,14 @@ export class World {
     this.syncPublic(pd, zOf);
     this.syncStations(pd, zOf);
 
+    // the arrest: the officer closes in behind the runner
+    if (this.arrestT > 0) {
+      this.arrestT = Math.max(0, this.arrestT - dt);
+      const k = Math.min(1, (2.6 - this.arrestT) / 1.0);
+      const p = this.player.root.position;
+      this.copView.position.set(p.x - 1.0, 0.02 + Math.abs(Math.sin(this.time * 10)) * 0.03 * (1 - k), 3.4 - 3.2 * k);
+      this.copView.rotation.z = Math.sin(this.time * 10) * 0.045 * (1 - k);
+    }
     // runner, camera, effects
     if (menu) this.player.menu(dt);
     if (this.introActive) this.updateIntroCamera(dt);
@@ -489,6 +528,12 @@ export class World {
     this.grassMat.color.set(p.grass);
     this.paveMat.color.set(p.pave);
     this.tint.set(p.tint);
+    if (this.theme) {
+      this.fogTarget.lerp(new THREE.Color(this.theme.fog), 0.6);
+      this.grassMat.color.set(this.theme.grass);
+      this.paveMat.color.set(this.theme.pave);
+      this.tint.multiply(new THREE.Color(this.theme.building));
+    }
     const river = zone === 'seine';
     for (const w of this.water) w.visible = river;
   }
@@ -546,7 +591,7 @@ export class World {
       for (let d = start; d < pd + VIEW_AHEAD; d += spacing) {
         if (side === 1 && zoneAt(d) === 'seine') continue;
         m4.makeTranslation(sgn * (SIDEWALK_OUT - 0.5), 0.25, zOf(d));
-        this.trees.add(m4, new THREE.Color(0.9 + this.rng.next() * 0.1, 0.95 + this.rng.next() * 0.05, 0.9));
+        this.trees.add(m4, new THREE.Color(0.9 + this.rng.next() * 0.1, 0.95 + this.rng.next() * 0.05, 0.9).multiply(this.leafTint));
       }
     }
     this.trees.end();
@@ -667,6 +712,7 @@ export class World {
     this.nextBuilding = [-70, -70];
     this.stationIdx = -1;
     this.pending = null;
+    this.endArrest();
     this.player.reset();
   }
 
@@ -688,6 +734,10 @@ export class World {
     this.sun.color.setRGB(1, 0.86 + warm * 0.08, 0.72 + (1 - warm) * 0.22);
     this.scene.backgroundIntensity = 0.32 + 0.78 * sun;
     const target = this.dayFog.clone().lerp(this.nightFog, 1 - sun);
+    if (this.theme) {
+      target.lerp(new THREE.Color(this.theme.fog), 0.55);
+      if (this.theme.night > 0) target.lerp(new THREE.Color('#1a1230'), this.theme.night * (1 - sun) * 0.8);
+    }
     if (this.rainLevel > 0.01) target.lerp(new THREE.Color('#8e9aa6'), this.rainLevel * 0.7);
     this.fogTarget.lerp(target, Math.min(1, dt * 0.5));
     (this.scene.fog as THREE.Fog).near = 45 - this.rainLevel * 20;
@@ -744,6 +794,12 @@ export class World {
       const a = this.shake * 0.5;
       ox = (Math.random() - 0.5) * a;
       oy = (Math.random() - 0.5) * a;
+    }
+    if (this.arrestT > 0) {
+      // side view on the arrest, so the officer and the runner are both in frame
+      cam.position.set(sim.x + 1.5, sim.y + 2.2, 4.8);
+      cam.lookAt(sim.x - 0.35, sim.y + 1.05, 0.3);
+      return;
     }
     cam.position.set(sx + ox, this.camY + height + oy, dist);
     const speedFactor = Math.max(0, Math.min(1, (sim.speed - 12) / 15));

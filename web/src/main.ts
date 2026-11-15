@@ -5,9 +5,10 @@ import { solve, type Spec } from './sim/track';
 import { World } from './view/world';
 import { Audio } from './audio';
 import { bindInput, type Action } from './input';
-import { UI, type Screen } from './ui';
+import { UI, type Screen, type ShopView } from './ui';
 import { t, type Key } from './i18n';
 import { stations } from './data/route';
+import { loadMeta, saveMeta, findSkin, findBoard, findTheme, priceOf, owned, grant, boxRoll, nameOf, type ShopItem, type Meta } from './meta';
 import { load, save } from './storage';
 import { OB, trainLength, speedAt, SPEED, laneX, MOVER } from './config';
 import type { ObKind, PowerKind, SimEvent } from './sim/types';
@@ -57,18 +58,23 @@ async function main() {
   let best = load('best', 0);
   let bank = load('bank', 0);
   let keyBank = load('keys', 0);
+  const meta: Meta = loadMeta();
   let revives = 0; // per run: the price doubles each time
   let bankedCoins = 0;
   const reviveCost = () => Math.min(64, 1 << revives);
   let state: Screen = 'intro';
   let overTimer = 0;
   const horned = new Set<number>();
+  const passed = new Set<number>();
+  let ambT = 9;
 
   let vw = 0, vh = 0;
   const resize = () => {
     const w = window.innerWidth, h = window.innerHeight;
     vw = w;
     vh = h;
+    // a focused button can scroll the page inside a WebView: keep the view pinned at the top
+    if (window.scrollY !== 0) window.scrollTo(0, 0);
     renderer.setSize(w, h, false);
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
@@ -82,6 +88,7 @@ async function main() {
   // check the size every frame so the camera never keeps a stale aspect ratio.
   const checkSize = () => {
     if (window.innerWidth !== vw || window.innerHeight !== vh) resize();
+    if (window.scrollY !== 0) window.scrollTo(0, 0);
   };
 
   const toggleMute = () => {
@@ -89,6 +96,19 @@ async function main() {
     audio.setMuted(!audio.muted);
     save('muted', audio.muted);
     ui.setMuted(audio.muted);
+  };
+  const shopView = (): ShopView => ({
+    coins: bank,
+    keys: keyBank,
+    stock: meta.stock,
+    owned: { char: meta.chars, board: meta.boards, theme: meta.themes },
+    equip: meta.equip,
+  });
+  const applyLook = () => {
+    world.player.figure.setSkin(findSkin(meta.equip.char));
+    world.setIntroSkin(findSkin(meta.equip.char));
+    world.player.setBoardColors(findBoard(meta.equip.board).deck, findBoard(meta.equip.board).stripe);
+    world.setTheme(findTheme(meta.equip.theme));
   };
   const ui = new UI(document.getElementById('ui')!, {
     play: () => play(),
@@ -100,11 +120,59 @@ async function main() {
     toggleMute,
     langChanged: () => {},
     revive: () => revive(),
+    openShop: () => { audio.unlock(); audio.click(); ui.shopOpen(shopView()); },
+    closeShop: () => { if (state === 'shop') ui.show('start'); },
+    buy: (kind, id) => buy(kind, id),
+    equip: (kind, id) => { equipItem(kind, id); audio.click(); ui.shopRefresh(shopView()); },
+    box: () => openBox(),
   }, audio.muted);
+  applyLook();
 
+  function equipItem(kind: ShopItem['kind'], id: string) {
+    if (kind === 'char') meta.equip.char = id;
+    else if (kind === 'board') meta.equip.board = id;
+    else meta.equip.theme = id;
+    saveMeta(meta);
+    applyLook();
+  }
+  function buy(kind: ShopItem['kind'], id: string) {
+    const it: ShopItem = { kind, id };
+    if (owned(meta, it)) { equipItem(kind, id); audio.click(); ui.shopRefresh(shopView()); return; }
+    const price = priceOf(it);
+    if (bank < price) { ui.note(t('notEnough')); audio.bump(); return; }
+    bank -= price;
+    save('bank', bank);
+    grant(meta, it);
+    // a new board also fills the bag
+    if (kind === 'board') meta.stock += 3;
+    equipItem(kind, id);
+    audio.power();
+    ui.note(`${nameOf(it)} !`);
+    ui.shopRefresh(shopView());
+  }
+  function openBox() {
+    const price = 1500;
+    if (bank < price) { ui.note(t('notEnough')); audio.bump(); return; }
+    bank -= price;
+    const r = boxRoll(meta);
+    if (r.item) {
+      grant(meta, r.item);
+      if (r.item.kind === 'board') meta.stock += 2;
+      saveMeta(meta);
+      ui.note(`${t('youGot')} ${nameOf(r.item)}`);
+    } else {
+      bank += r.coins || 0;
+      ui.note(`+${r.coins} ${t('coinsTotal')}`);
+    }
+    save('bank', bank);
+    audio.power();
+    ui.flash('power');
+    ui.shopRefresh(shopView());
+  }
   let seed = (Date.now() % 100000) + 1;
   function toTitle(show: boolean) {
     seed = (seed * 48271) % 2147483647;
+    world.endArrest();
     revives = 0;
     bankedCoins = 0;
     sim.reset(seed, !load('tutorialDone', false));
@@ -124,6 +192,7 @@ async function main() {
     save('keys', keyBank);
     revives++;
     bankedCoins = sim.coins;
+    world.endArrest();
     sim.revive();
     state = 'play';
     audio.unlock();
@@ -172,6 +241,13 @@ async function main() {
     else if (a === 'right') sim.right();
     else if (a === 'up') sim.jump();
     else if (a === 'down') sim.down();
+    else if (a === 'double') {
+      if (sim.alive && sim.furyT === 0 && meta.stock > 0) {
+        meta.stock--;
+        saveMeta(meta);
+        sim.fury(9);
+      } else if (meta.stock === 0) ui.toast(t('noBoard'), 1200);
+    }
   }
   bindInput(document.getElementById('ui')!, onAction, () => state === 'play');
   document.addEventListener('visibilitychange', () => { if (document.hidden && !TEST) pause(); });
@@ -187,12 +263,16 @@ async function main() {
       case 'coin': audio.coin(ev.streak); break;
       case 'power': audio.power(); ui.toast(t(ev.kind)); ui.flash('power'); break;
       case 'key': audio.coin(4); keyBank++; save('keys', keyBank); ui.flash('power'); break;
-      case 'boardBreak': audio.bump(); ui.flash('hit'); ui.toast(t('board'), 900); break;
+      case 'board': meta.stock++; saveMeta(meta); audio.coin(3); ui.toast(`${t('board')} +1`, 1000); break;
+      case 'fury': audio.boost(); ui.flash('power'); ui.toast(t('fury'), 1200); break;
+      case 'furyEnd': break;
       case 'revive': ui.flash('power'); break;
       case 'powerEnd': audio.powerEnd(); break;
       case 'level': audio.level(); ui.toast(t('mult') + ' ×' + ev.mult); break;
       case 'stumble': audio.stumble(); ui.flash('hit'); ui.toast(t('careful'), 1600); break;
       case 'crash': {
+        world.arrest();
+        ui.hint('');
         audio.crash();
         audio.stopMusic();
         ui.flash('crash');
@@ -253,7 +333,7 @@ async function main() {
     for (const ev of events) handle(ev);
     if (state === 'play' && !sim.alive) {
       overTimer += dt;
-      if (overTimer > 1.2) { state = 'over'; ui.show('over'); }
+      if (overTimer > 2.6) { state = 'over'; ui.show('over'); }
     } else if (state === 'over') overTimer += dt;
     if (state === 'play' && sim.d > 260 && !load('tutorialDone', false)) save('tutorialDone', true);
     if (state === 'play' || state === 'pause' || state === 'over') world.player.update(sim, state === 'pause' ? 0 : dt, events);
@@ -262,6 +342,8 @@ async function main() {
     if (st && state === 'play') {
       ui.station(st.short, st.line, st.color, `SORTIE · LIGNE ${st.line}`);
       audio.chime();
+      window.setTimeout(() => { if (state === 'play') audio.announcement(); }, 750);
+      window.setTimeout(() => { if (state === 'play') audio.doorBeep(); }, 1600);
     }
     audio.tempo = 108 + (sim.speed - SPEED.start) * 1.6;
     // moving trains: horn once when one is 90 m away, rumble louder as it closes in
@@ -275,8 +357,29 @@ async function main() {
       }
       if (horned.size > 50) horned.clear();
     }
+    // a train running past the runner
+    if (state === 'play' && sim.alive) {
+      for (const o of sim.obs) {
+        if (o.kind === 'mtrain' && o.d1 < sim.d && !passed.has(o.id)) {
+          passed.add(o.id);
+          audio.trainPass();
+        }
+      }
+      if (passed.size > 60) passed.clear();
+    }
+    // platform life: babble, door beeps, a jingle now and then
+    if (state === 'play' && sim.alive) {
+      ambT -= dt;
+      if (ambT <= 0) {
+        ambT = 13 + Math.random() * 15;
+        const r = Math.random();
+        if (r < 0.45) audio.chatter();
+        else if (r < 0.75) audio.doorBeep();
+        else audio.jingle();
+      }
+    }
     audio.rumble(rumble);
-    ui.hud(Math.floor(sim.score), sim.coins, sim.mult, sim.power, keyBank);
+    ui.hud(Math.floor(sim.score), sim.coins, sim.mult, sim.power, keyBank, meta.stock, sim.furyT > 0 ? sim.furyT / 9 : 0);
     if (draw) renderer.render(world.scene, world.camera);
   }
 
@@ -307,6 +410,8 @@ async function main() {
   }
   setTimeout(resize, 250);
   setTimeout(resize, 1200);
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
 
   let last = performance.now();
   const loop = (now: number) => {

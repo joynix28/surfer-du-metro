@@ -62,4 +62,7 @@ export type SimEvent =
   | { type: 'level'; mult: number }
   | { type: 'key'; x: number; y: number }
   | { type: 'boardBreak'; x: number; y: number }
-  | { type: 'revive'; x: number; y: number };
+  | { type: 'revive'; x: number; y: number }
+  | { type: 'board'; x: number; y: number }
+  | { type: 'fury'; x: number; y: number }
+  | { type: 'furyEnd' };

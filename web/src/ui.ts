@@ -2,8 +2,9 @@
 import { t, getLang, setLang, LANGS, LANG_LABEL, type Key } from './i18n';
 import type { PowerKind } from './sim/types';
 import { POWER_TIME } from './config';
+import { SKINS, BOARDS, THEMES, priceOf, type ShopItem } from './meta';
 
-export type Screen = 'intro' | 'start' | 'play' | 'pause' | 'over';
+export type Screen = 'intro' | 'start' | 'play' | 'pause' | 'over' | 'shop';
 export interface UIHandlers {
   play(): void;
   resume(): void;
@@ -14,6 +15,19 @@ export interface UIHandlers {
   langChanged(): void;
   skipIntro(): void;
   revive(): void;
+  openShop(): void;
+  buy(kind: ShopItem['kind'], id: string): void;
+  equip(kind: ShopItem['kind'], id: string): void;
+  box(): void;
+  closeShop(): void;
+}
+
+export interface ShopView {
+  coins: number;
+  keys: number;
+  stock: number;
+  owned: { char: string[]; board: string[]; theme: string[] };
+  equip: { char: string; board: string; theme: string };
 }
 
 const ICON = {
@@ -33,7 +47,9 @@ export class UI {
   private toastTimer = 0;
   private stationTimer = 0;
   touch = matchMedia('(pointer: coarse)').matches;
-  private last = { score: -1, coins: -1, mult: -1, power: '', keys: -1 };
+  private last = { score: -1, coins: -1, mult: -1, power: '', keys: -1, boards: -1, fury: -1 };
+  private tab: 'char' | 'board' | 'theme' | 'box' = 'char';
+  private view: ShopView | null = null;
 
   constructor(root: HTMLElement, h: UIHandlers, muted: boolean) {
     this.root = root;
@@ -45,7 +61,8 @@ export class UI {
         </div>
         <div class="hud-right">
           <div class="score" id="score">0</div>
-          <div class="hud-row"><span class="mult" id="mult">×1</span><span class="keys">${ICON.key}<b id="keys">0</b></span><span class="coins">${ICON.coin}<b id="coins">0</b></span></div>
+          <div class="hud-row"><span class="mult" id="mult">×1</span><span class="keys">${ICON.key}<b id="keys">0</b></span><span class="board-ico" id="boards">0</span><span class="coins">${ICON.coin}<b id="coins">0</b></span></div>
+          <div class="fury" id="fury"><i></i></div>
           <div class="powers" id="powers"></div>
         </div>
         <div class="hint" id="hint"></div>
@@ -60,6 +77,27 @@ export class UI {
         <div class="intro-mark"><span class="line">J</span><b data-k="title"></b><small>ÎLE-DE-FRANCE · RER &amp; MÉTRO</small></div>
         <div class="intro-skip" id="intro-skip" data-k="skip"></div>
       </section>
+      <section class="screen shop" id="s-shop">
+        <div class="shop-panel">
+          <div class="shop-head">
+            <h2 data-k="shop"></h2>
+            <div class="wallet">
+              <span class="coins">${ICON.coin}<b id="shop-coins">0</b></span>
+              <span class="keys">${ICON.key}<b id="shop-keys">0</b></span>
+              <span class="board-ico">🛹<b id="shop-boards">0</b></span>
+            </div>
+            <button class="icon-btn" id="shop-close">✕</button>
+          </div>
+          <div class="tabs" id="shop-tabs">
+            <button class="tab on" data-tab="char" data-k="tabChars"></button>
+            <button class="tab" data-tab="board" data-k="tabBoards"></button>
+            <button class="tab" data-tab="theme" data-k="tabThemes"></button>
+            <button class="tab" data-tab="box" data-k="tabBox"></button>
+          </div>
+          <div class="shop-grid" id="shop-grid"></div>
+          <div class="shop-note" id="shop-note"></div>
+        </div>
+      </section>
       <section class="screen start" id="s-start">
         <div class="panel">
           <h1 data-k="title"></h1>
@@ -68,6 +106,7 @@ export class UI {
           <button class="big" id="btn-play" data-k="play"></button>
           <p class="ctrl" id="ctrl"></p>
           <div class="row">
+            <button class="chip shop" id="btn-shop" data-k="shop"></button>
             <button class="chip" id="btn-lang"></button>
             <button class="chip" id="btn-mute2"></button>
           </div>
@@ -77,6 +116,7 @@ export class UI {
         <div class="panel">
           <h2 data-k="paused"></h2>
           <button class="big" id="btn-resume" data-k="resume"></button>
+          <button class="ghost" id="btn-shop-pause" data-k="shop"></button>
           <button class="ghost" id="btn-restart" data-k="restart"></button>
           <button class="ghost" id="btn-home" data-k="home"></button>
         </div>
@@ -101,6 +141,7 @@ export class UI {
     tap('btn-play', () => h.play());
     tap('btn-pause', () => h.pause());
     tap('btn-resume', () => h.resume());
+    tap('btn-shop-pause', () => h.openShop());
     tap('btn-restart', () => h.restart());
     tap('btn-home', () => h.home());
     tap('btn-home2', () => h.home());
@@ -108,6 +149,24 @@ export class UI {
     tap('btn-revive', () => h.revive());
     tap('btn-mute', () => h.toggleMute());
     tap('btn-mute2', () => h.toggleMute());
+    tap('btn-shop', () => h.openShop());
+    tap('shop-close', () => h.closeShop());
+    this.el['shop-tabs'].addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('.tab') as HTMLElement | null;
+      if (!b) return;
+      this.tab = b.dataset.tab as typeof this.tab;
+      for (const tab of this.el['shop-tabs'].querySelectorAll('.tab')) tab.classList.toggle('on', tab === b);
+      this.renderShop();
+    });
+    this.el['shop-grid'].addEventListener('click', (e) => {
+      const card = (e.target as HTMLElement).closest('.card') as HTMLElement | null;
+      if (!card) return;
+      const kind = card.dataset.kind || '';
+      const id = card.dataset.id || '';
+      if (kind === 'box') h.box();
+      else if (card.classList.contains('owned')) h.equip(kind as ShopItem['kind'], id);
+      else h.buy(kind as ShopItem['kind'], id);
+    });
     tap('intro-skip', () => h.skipIntro());
     this.el['s-intro'].addEventListener('click', () => h.skipIntro());
     tap('btn-lang', () => {
@@ -119,7 +178,6 @@ export class UI {
     // on a phone, any tap on the title screen starts the game (buttons stop propagation themselves)
     this.el['s-start'].addEventListener('click', () => h.play());
     this.el['s-over'].addEventListener('click', () => h.restart());
-    this.el['s-pause'].addEventListener('click', () => h.resume());
     for (const b of root.querySelectorAll('button')) b.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.setMuted(muted);
     this.texts();
@@ -141,7 +199,7 @@ export class UI {
   show(s: Screen) {
     this.screen = s;
     this.root.dataset.screen = s;
-    for (const k of ['intro', 'start', 'pause', 'over'] as const) this.el['s-' + k].classList.toggle('on', s === k);
+    for (const k of ['intro', 'start', 'pause', 'over', 'shop'] as const) this.el['s-' + k].classList.toggle('on', s === k);
     this.el.hud.classList.toggle('on', s === 'play' || s === 'pause');
     if (s !== 'play') this.hint('');
     if (s === 'start') this.el.station.classList.remove('on');
@@ -155,10 +213,20 @@ export class UI {
     this.el.bank.textContent = String(bank);
   }
 
-  hud(score: number, coins: number, mult: number, power: Record<PowerKind, number>, keys = 0) {
+  hud(score: number, coins: number, mult: number, power: Record<PowerKind, number>, keys = 0, boards = 0, fury = 0) {
     if (keys !== this.last.keys) {
       this.el.keys.textContent = String(keys);
       this.last.keys = keys;
+    }
+    if (boards !== this.last.boards) {
+      this.el.boards.textContent = String(boards);
+      this.last.boards = boards;
+    }
+    const f = Math.round(fury * 20) / 20;
+    if (f !== this.last.fury) {
+      this.last.fury = f;
+      this.el.fury.classList.toggle('on', f > 0);
+      (this.el.fury.firstElementChild as HTMLElement).style.transform = `scaleX(${f})`;
     }
     if (score !== this.last.score) {
       this.el.score.textContent = String(score).padStart(6, '0');
@@ -200,6 +268,57 @@ export class UI {
     e.textContent = text;
     e.classList.add('on');
     this.toastTimer = window.setTimeout(() => e.classList.remove('on'), ms);
+  }
+
+  // ---------------------------------------------------------------- shop
+  shopOpen(view: ShopView) {
+    this.view = view;
+    this.show('shop');
+    this.renderShop();
+  }
+  shopRefresh(view: ShopView) {
+    this.view = view;
+    this.renderShop();
+  }
+  note(text: string) {
+    const e = this.el['shop-note'];
+    e.textContent = text;
+    e.classList.add('on');
+    window.clearTimeout((this as unknown as { nt?: number }).nt);
+    (this as unknown as { nt?: number }).nt = window.setTimeout(() => e.classList.remove('on'), 1800);
+  }
+  private renderShop() {
+    const v = this.view;
+    if (!v) return;
+    this.el['shop-coins'].textContent = String(v.coins);
+    this.el['shop-keys'].textContent = String(v.keys);
+    this.el['shop-boards'].textContent = String(v.stock);
+    const grid = this.el['shop-grid'];
+    const money = t('coinsTotal');
+    if (this.tab === 'box') {
+      grid.innerHTML = `<button class="card box" data-kind="box" data-id="box">
+        <span class="sw boxico">?</span>
+        <b>${t('box')}</b>
+        <small>${1500} ${t('coinOne')}</small>
+      </button>`;
+      return;
+    }
+    const list = this.tab === 'char' ? SKINS : this.tab === 'board' ? BOARDS : THEMES;
+    grid.innerHTML = list.map((it) => {
+      const kind = this.tab === 'char' ? 'char' : this.tab === 'board' ? 'board' : 'theme';
+      const own = kind === 'char' ? v.owned.char.includes(it.id) : kind === 'board' ? v.owned.board.includes(it.id) : v.owned.theme.includes(it.id);
+      const eq = kind === 'char' ? v.equip.char === it.id : kind === 'board' ? v.equip.board === it.id : v.equip.theme === it.id;
+      const a = kind === 'char' ? (it as typeof SKINS[0]).hood : kind === 'board' ? (it as typeof BOARDS[0]).deck : (it as typeof THEMES[0]).fog;
+      const b = kind === 'char' ? (it as typeof SKINS[0]).cap : kind === 'board' ? (it as typeof BOARDS[0]).stripe : (it as typeof THEMES[0]).grass;
+      const price = priceOf({ kind, id: it.id });
+      const poor = !own && v.coins < price;
+      const label = eq ? t('equipped') : own ? t('equip') : `${price} ${money}`;
+      return `<button class="card ${own ? 'owned' : ''} ${eq ? 'eq' : ''} ${poor ? 'poor' : ''}" data-kind="${kind}" data-id="${it.id}">
+        <span class="sw ${kind}" style="--a:${a};--b:${b}"></span>
+        <b>${it.name}</b>
+        <small>${label}</small>
+      </button>`;
+    }).join('');
   }
 
   /** The station board that slides in when the runner reaches a new stop. */

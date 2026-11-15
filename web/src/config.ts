@@ -26,7 +26,7 @@ export const GRAVITY = (2 * PLAYER.jumpHeight) / (PLAYER.jumpApexTime * PLAYER.j
 export const JUMP_V = GRAVITY * PLAYER.jumpApexTime;
 export const SUPER_JUMP_V = Math.sqrt(2 * GRAVITY * PLAYER.superJumpHeight);
 
-export const SPEED = { start: 12, max: 27, ramp: 2600 };
+export const SPEED = { start: 14, max: 34, ramp: 1750 };
 export const speedAt = (d: number) => SPEED.start + (SPEED.max - SPEED.start) * (1 - Math.exp(-Math.max(0, d) / SPEED.ramp));
 export const levelAt = (d: number) => Math.min(1, Math.max(0, d) / 4500);
 

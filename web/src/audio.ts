@@ -102,6 +102,45 @@ export class Audio {
   }
   click() { this.tone(660, 0.05, 'square', 0.06); }
   level() { [660, 880].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.1, undefined, i * 0.08)); }
+  /** A platform crowd: soft, filtered babble. */
+  chatter() {
+    this.hiss(2.2, 0.10, 520, 900, 0, 'bandpass');
+    this.hiss(1.6, 0.06, 1600, 1100, 0.4, 'bandpass');
+  }
+  /** Generic station jingle (three notes, ours, not a real one). */
+  jingle() {
+    [[523, 0], [659, 0.16], [784, 0.32]].forEach(([f, w]) => {
+      this.tone(f, 0.22, 'triangle', 0.08, undefined, w);
+      this.tone(f * 2, 0.18, 'sine', 0.03, undefined, w);
+    });
+  }
+  /** Muffled platform announcement: a few formant blips under a lowpass. */
+  announcement() {
+    const words = [0, 0.28, 0.62, 0.95, 1.2];
+    words.forEach((w, i) => {
+      const f = 180 + (i % 2) * 70 + Math.sin(i) * 20;
+      this.tone(f, 0.16, 'sawtooth', 0.05, f * 1.25, w);
+      this.tone(f * 2.4, 0.12, 'sine', 0.03, f * 2.8, w + 0.02);
+    });
+    this.hiss(1.4, 0.05, 900, 700, 0, 'lowpass');
+  }
+  /** The three beeps before the doors close. */
+  doorBeep() {
+    for (let i = 0; i < 3; i++) this.tone(1180, 0.09, 'square', 0.06, undefined, i * 0.17);
+  }
+  /** A train running past: a short doppler whoosh. */
+  trainPass() {
+    this.hiss(0.9, 0.28, 2200, 300, 0, 'bandpass');
+    this.tone(120, 0.8, 'sawtooth', 0.12, 70);
+  }
+
+  /** Skateboard boost: a rising whoosh. */
+  boost() {
+    this.hiss(0.5, 0.35, 300, 4200, 0, 'bandpass');
+    this.tone(220, 0.45, 'sawtooth', 0.1, 880);
+    this.tone(660, 0.3, 'triangle', 0.07, 1320, 0.05);
+  }
+
   /** Spray paint: a short, dry hiss. */
   spray() {
     this.hiss(2.4, 0.16, 4200, 2800, 0, 'highpass');

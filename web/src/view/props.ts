@@ -224,17 +224,17 @@ export function noseProto(variant: number): THREE.Object3D {
   const body = new THREE.MeshLambertMaterial({ color: live });
   const dark = new THREE.MeshLambertMaterial({ color: 0x1a222c });
   const shell = mesh(new THREE.SphereGeometry(1, 20, 12), body, 0, 1.82, 0.28);
-  shell.scale.set(1.12, 1.2, 0.72);
+  shell.scale.set(1.12, 1.2, 0.92);
   g.add(shell);
   // windscreen, raked back
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.66, 0.82), new THREE.MeshLambertMaterial({ color: 0x141d26 }));
-  screen.position.set(0, 2.14, 0.86);
-  screen.rotation.x = -0.22;
+  screen.position.set(0, 2.16, 1.02);
+  screen.rotation.x = -0.2;
   g.add(screen);
-  const visor = mesh(new THREE.BoxGeometry(1.8, 0.08, 0.22), new THREE.MeshLambertMaterial({ color: 0x2f363e }), 0, 2.58, 0.82);
+  const visor = mesh(new THREE.BoxGeometry(1.86, 0.09, 0.26), new THREE.MeshLambertMaterial({ color: 0x2f363e }), 0, 2.62, 0.98);
   g.add(visor);
   // destination blind
-  const blind = mesh(new THREE.BoxGeometry(1.0, 0.2, 0.06), new THREE.MeshLambertMaterial({ color: 0x0f1720 }), 0, 2.38, 0.9);
+  const blind = mesh(new THREE.BoxGeometry(1.02, 0.22, 0.06), new THREE.MeshLambertMaterial({ color: 0x0f1720 }), 0, 2.42, 1.06);
   g.add(blind);
   // headlights and marker lights
   for (const x of [-0.66, 0.66]) {
@@ -243,8 +243,14 @@ export function noseProto(variant: number): THREE.Object3D {
     const bezel = mesh(new THREE.TorusGeometry(0.15, 0.035, 6, 12), dark, x, 1.28, 0.84);
     g.add(bezel);
   }
+  // livery band wrapping the nose
+  const bandMat = new THREE.MeshLambertMaterial({ color: [0x6c4b9e, 0x20518f, 0x1f8a91][variant % 3] });
+  const band = mesh(new THREE.BoxGeometry(2.1, 0.16, 0.1), bandMat, 0, 1.0, 1.02);
+  g.add(band);
+  const gold = mesh(new THREE.BoxGeometry(2.1, 0.08, 0.1), new THREE.MeshLambertMaterial({ color: 0xf0c94a }), 0, 0.86, 1.02);
+  g.add(gold);
   // fairing under the nose and the coupler
-  g.add(mesh(new THREE.BoxGeometry(1.7, 0.5, 0.7), new THREE.MeshLambertMaterial({ color: 0x2b3138 }), 0, 0.62, 0.62));
+  g.add(mesh(new THREE.BoxGeometry(1.7, 0.5, 0.9), new THREE.MeshLambertMaterial({ color: 0x2b3138 }), 0, 0.62, 0.72));
   g.add(mesh(new THREE.BoxGeometry(0.5, 0.22, 0.5), new THREE.MeshLambertMaterial({ color: 0x3b424a }), 0, 0.5, 0.95));
   return g;
 }

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Instanced } from './pools';
 import { paintSign, SIGN_W, SIGN_H } from './france';
-import { stationIndexAt, stations, LINE } from '../data/route';
+import { stationIndexAt, stations } from '../data/route';
 
 const BOARD_W = 4.6;
 const BOARD_H = 1.15;
@@ -71,7 +71,7 @@ export class StationSigns {
       const slot = this.slots[used++];
       if (slot.station !== i) {
         slot.station = i;
-        paintSign(slot.g, st.short, `SORTIE · LIGNE ${LINE}`);
+        paintSign(slot.g, st.short, st.line, st.color, `SORTIE · LIGNE ${st.line}`);
         slot.tex.needsUpdate = true;
       }
       slot.group.position.set(0, 0, z);
@@ -85,7 +85,7 @@ export class StationSigns {
 
   warm(renderer: THREE.WebGLRenderer) {
     for (const s of this.slots) {
-      paintSign(s.g, stations[0].short, `SORTIE · LIGNE ${LINE}`);
+      paintSign(s.g, stations[0].short, stations[0].line, stations[0].color, `SORTIE · LIGNE ${stations[0].line}`);
       s.tex.needsUpdate = true;
       renderer.initTexture(s.tex);
       s.group.visible = true;

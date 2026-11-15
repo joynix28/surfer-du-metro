@@ -108,10 +108,10 @@ export function glowTexture() {
 }
 
 /** Power-up cards: a rounded tile with a simple drawn icon. */
-export function powerTexture(kind: 'magnet' | 'shoes' | 'double') {
+export function powerTexture(kind: 'magnet' | 'shoes' | 'double' | 'board') {
   const S = 128;
   const { c, g } = canvas(S, S);
-  const bg = { magnet: '#e8414b', shoes: '#2fb36b', double: '#f2a516' }[kind];
+  const bg = { magnet: '#e8414b', shoes: '#2fb36b', double: '#f2a516', board: '#3f6dff' }[kind];
   g.fillStyle = 'rgba(255,255,255,0.95)';
   round(g, 4, 4, S - 8, S - 8, 26);
   g.fill();
@@ -142,6 +142,22 @@ export function powerTexture(kind: 'magnet' | 'shoes' | 'double') {
     g.beginPath();
     for (let i = 0; i < 4; i++) { g.moveTo(44, 82 + i * 6); g.lineTo(84, 85 + i * 6); }
     g.stroke();
+  } else if (kind === 'board') {
+    // hoverboard seen from the side, with a thrust glow
+    g.beginPath();
+    g.moveTo(26, 74);
+    g.quadraticCurveTo(64, 58, 102, 74);
+    g.quadraticCurveTo(100, 88, 64, 88);
+    g.quadraticCurveTo(28, 88, 26, 74);
+    g.closePath();
+    g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.85)';
+    g.fillRect(42, 74, 44, 4);
+    g.fillStyle = 'rgba(255,255,255,0.35)';
+    g.beginPath();
+    g.moveTo(40, 92); g.lineTo(88, 92); g.lineTo(80, 104); g.lineTo(48, 104);
+    g.closePath();
+    g.fill();
   } else {
     g.font = 'bold 64px system-ui, sans-serif';
     g.textAlign = 'center';

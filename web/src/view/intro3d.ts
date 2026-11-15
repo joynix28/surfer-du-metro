@@ -254,17 +254,20 @@ export class Intro {
       this.cop.visible = true;
       const k = Math.min(1, (t - 6.1) / 1.1);
       // he comes along the pavement, from the right of the frame, towards the runner
-      this.cop.position.set(-3.55, 0.02 + Math.abs(Math.sin(t * 9)) * 0.03, ease(1.0, -1.9, k));
-      this.cop.rotation.y = Math.PI;
+      this.cop.position.set(-3.55, 0.02 + Math.abs(Math.sin(t * 9)) * 0.03, ease(1.2, -1.2, k));
+      this.cop.rotation.y = 0;
       if (this.cue === null) this.cue = 'whistle';
       f.update(dt, 'stumble');
-      f.root.rotation.y = ease(Math.PI / 2, 2.25, k);
+      // he backs away from the wall, eyes on the officer
+      f.root.position.x = ease(-2.72, -2.05, k);
+      f.root.position.z = ease(-3.55, -2.55, k);
+      f.root.rotation.y = ease(Math.PI / 2, 2.45, k);
     } else if (t >= 7.4) {
       // bolt down the track, the officer after him
       const k = t - 7.4;
       f.update(dt, 'run', 11);
       f.root.rotation.y = Math.PI;
-      f.root.position.set(-2.75 + 0.9 - k * 0.2, 0, WALL_Z - k * 8);
+      f.root.position.set(-2.05 - k * 0.1, 0, -2.55 - k * 8);
       this.cop.position.set(-3.55, 0.02 + Math.abs(Math.sin(t * 9)) * 0.03, -1.9 - k * 3.2);
       if (this.cue === null && t > 7.5) this.cue = 'bolt';
     } else {

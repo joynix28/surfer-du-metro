@@ -1,7 +1,8 @@
 // Line-side props: the trains, the barriers and the gantries. All built from primitives, so the game
 // needs no 3D model files at all.
 import * as THREE from 'three';
-import { trainTexture, cabTexture, stripeTexture, graffitiTexture } from './france';
+import { trainTexture, stripeTexture, graffitiTexture } from './france';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const ZINC = new THREE.MeshLambertMaterial({ color: 0x707880 });
 const DARK = new THREE.MeshLambertMaterial({ color: 0x272c33 });
@@ -22,7 +23,6 @@ function mesh(geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 
 export function trainProto(variant: number): THREE.Object3D {
   const g = new THREE.Group();
   const livery = new THREE.MeshLambertMaterial({ map: trainTexture(variant) });
-  const cab = new THREE.MeshLambertMaterial({ map: cabTexture() });
   g.add(mesh(new THREE.BoxGeometry(2.24, 2.42, 6.58), livery, 0, 1.83, 0));
   // rounded roof: an ellipsoid cap that hides the box edge, then the grey roof panel
   const cap = mesh(new THREE.SphereGeometry(1, 18, 8), new THREE.MeshLambertMaterial({ color: variant % 2 ? '#e8ebef' : '#dfe4ea' }), 0, 3.0, 0);
@@ -31,18 +31,9 @@ export function trainProto(variant: number): THREE.Object3D {
   const roofPanel = mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshLambertMaterial({ color: 0x6e767e }), 0, 3.14, 0);
   roofPanel.scale.set(0.98, 0.22, 3.2);
   g.add(roofPanel);
-  // cab ends (hidden between cars, visible at the head and tail of a rake)
+  // plain end wall at both ends (the nose piece covers the head and tail of the rake)
   for (const s of [-1, 1]) {
-    const end = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.4), cab);
-    end.position.set(0, 1.83, s * 3.295);
-    if (s < 0) end.rotation.y = Math.PI;
-    end.castShadow = false;
-    g.add(end);
-    // visor over the windscreen and the coupler under it
-    const visor = mesh(new THREE.BoxGeometry(2.26, 0.1, 0.26), ZINC, 0, 2.92, s * 3.33);
-    g.add(visor);
-    const nose = mesh(new THREE.BoxGeometry(1.0, 0.34, 0.2), DARK, 0, 0.72, s * 3.34);
-    g.add(nose);
+    g.add(mesh(new THREE.BoxGeometry(2.24, 2.42, 0.06), new THREE.MeshLambertMaterial({ color: variant % 3 === 1 ? 0xd6dde3 : 0xe3e7ea }), 0, 1.83, s * 3.3));
   }
   g.add(mesh(new THREE.BoxGeometry(2.06, 0.26, 6.3), ZINC, 0, 3.17, 0));
   g.add(mesh(new THREE.BoxGeometry(0.9, 0.12, 1.2), new THREE.MeshLambertMaterial({ color: 0x4c535c }), 0, 3.34, 0.4));
@@ -190,12 +181,8 @@ export function bridgeProto(): THREE.Object3D {
   for (const z of [-2.3, 2.3]) {
     g.add(mesh(new THREE.BoxGeometry(18, 0.75, 0.35), dark, 0, 7.85, z));
   }
-  // an arch under the deck, so the bridge reads as an arch from the track
-  const arch = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.42, 6, 16, Math.PI), stone);
-  arch.rotation.set(0, Math.PI / 2, Math.PI);
-  arch.position.set(0, 6.2, 0);
-  arch.castShadow = true;
-  g.add(arch);
+  // a stone band under the deck, spanning the cutting
+  g.add(mesh(new THREE.BoxGeometry(17, 0.5, 4.4), dark, 0, 6.1, 0));
   return g;
 }
 
@@ -216,4 +203,96 @@ export function ediculeProto(): THREE.Object3D {
   const letters = mesh(new THREE.BoxGeometry(1.5, 0.16, 0.18), gold, 0, 2.55, -0.02);
   g.add(letters);
   return g;
+}
+
+/** A key pickup: bow, shaft and two teeth, gold, standing up. */
+export function keyProto(): THREE.Object3D {
+  const g = new THREE.Group();
+  const gold = new THREE.MeshLambertMaterial({ color: 0xffd24a, emissive: 0x6b4a00 });
+  const bow = mesh(new THREE.TorusGeometry(0.17, 0.055, 8, 16), gold, 0, 0.22, 0);
+  g.add(bow);
+  g.add(mesh(new THREE.BoxGeometry(0.07, 0.42, 0.07), gold, 0, -0.09, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.17, 0.07, 0.07), gold, 0.05, -0.24, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.12, 0.07, 0.07), gold, 0.03, -0.34, 0));
+  return g;
+}
+
+/** The rounded nose of a rake: ellipsoid shell, windscreen, headlights and a lower fairing. */
+export function noseProto(variant: number): THREE.Object3D {
+  const g = new THREE.Group();
+  const live = [0xe9ecef, 0xdfe4e8, 0xf0f2f4][variant % 3];
+  const body = new THREE.MeshLambertMaterial({ color: live });
+  const dark = new THREE.MeshLambertMaterial({ color: 0x1a222c });
+  const shell = mesh(new THREE.SphereGeometry(1, 20, 12), body, 0, 1.82, 0.28);
+  shell.scale.set(1.12, 1.2, 0.72);
+  g.add(shell);
+  // windscreen, raked back
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.66, 0.82), new THREE.MeshLambertMaterial({ color: 0x141d26 }));
+  screen.position.set(0, 2.14, 0.86);
+  screen.rotation.x = -0.22;
+  g.add(screen);
+  const visor = mesh(new THREE.BoxGeometry(1.8, 0.08, 0.22), new THREE.MeshLambertMaterial({ color: 0x2f363e }), 0, 2.58, 0.82);
+  g.add(visor);
+  // destination blind
+  const blind = mesh(new THREE.BoxGeometry(1.0, 0.2, 0.06), new THREE.MeshLambertMaterial({ color: 0x0f1720 }), 0, 2.38, 0.9);
+  g.add(blind);
+  // headlights and marker lights
+  for (const x of [-0.66, 0.66]) {
+    const lamp = mesh(new THREE.SphereGeometry(0.13, 10, 8), new THREE.MeshLambertMaterial({ color: 0xfff6d8, emissive: 0x6b5a20 }), x, 1.28, 0.86);
+    g.add(lamp);
+    const bezel = mesh(new THREE.TorusGeometry(0.15, 0.035, 6, 12), dark, x, 1.28, 0.84);
+    g.add(bezel);
+  }
+  // fairing under the nose and the coupler
+  g.add(mesh(new THREE.BoxGeometry(1.7, 0.5, 0.7), new THREE.MeshLambertMaterial({ color: 0x2b3138 }), 0, 0.62, 0.62));
+  g.add(mesh(new THREE.BoxGeometry(0.5, 0.22, 0.5), new THREE.MeshLambertMaterial({ color: 0x3b424a }), 0, 0.5, 0.95));
+  return g;
+}
+
+/** A stylised Eiffel Tower, far enough to read as a silhouette above the roofs. */
+export function eiffelProto(): THREE.Object3D {
+  const parts: THREE.BufferGeometry[] = [];
+  const push = (g: THREE.BufferGeometry, x: number, y: number, z: number, ry = 0) => {
+    g.rotateY(ry);
+    g.translate(x, y, z);
+    parts.push(g);
+  };
+  // four legs, in three tapering sections
+  const sections = [
+    { y0: 0, y1: 16, a0: 10.5, a1: 7.2 },
+    { y0: 16, y1: 34, a0: 7.2, a1: 4.2 },
+    { y0: 34, y1: 50, a0: 4.2, a1: 1.8 },
+  ];
+  for (const sec of sections) {
+    const h = sec.y1 - sec.y0;
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        const a0 = sec.a0, a1 = sec.a1;
+        const box = new THREE.BoxGeometry(1.5, h, 1.5);
+        const cx = (sx * (a0 + a1)) / 2;
+        const cz = (sz * (a0 + a1)) / 2;
+        // lean the leg so the tower tapers: approximate with a shear
+        const pos = box.attributes.position as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) {
+          const t = (pos.getY(i) + h / 2) / h;
+          pos.setX(i, pos.getX(i) + (sx * (a1 - a0)) * t * 0.5);
+          pos.setZ(i, pos.getZ(i) + (sz * (a1 - a0)) * t * 0.5);
+        }
+        box.computeVertexNormals();
+        push(box, cx, sec.y0 + h / 2, cz);
+      }
+    }
+    // a platform at the top of the section
+    const w = sec.a1 * 2.2;
+    push(new THREE.BoxGeometry(w, 0.9, w), 0, sec.y1, 0);
+  }
+  // upper shaft, spire and antenna
+  push(new THREE.CylinderGeometry(1.5, 2.6, 12, 8), 0, 56, 0);
+  push(new THREE.CylinderGeometry(0.3, 1.4, 8, 8), 0, 66, 0);
+  push(new THREE.CylinderGeometry(0.12, 0.3, 6, 6), 0, 73, 0);
+  push(new THREE.SphereGeometry(0.5, 8, 6), 0, 76, 0);
+  const geo = mergeGeometries(parts)!;
+  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x6a5a48 }));
+  m.name = 'eiffel';
+  return m;
 }

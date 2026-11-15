@@ -151,11 +151,11 @@ const movers = await p.ev(`(() => {
 const crashD = Object.values(movers.crashAt);
 check('moving train: run into it -> crash at the same point for every frame time and speed (within 0.35 m)', crashD.every((x) => x < 0.1 && x > -0.45) && Math.max(...crashD) - Math.min(...crashD) < 0.35, movers.crashAt);
 check('moving train: a dodge 0.3 s before meeting works at every speed and frame time', Object.values(movers.dodge).every(Boolean), movers.dodge);
-check('moving train: parked until 70 m before the meeting, then comes at 0.6x the runner speed', await p.ev(`(() => {
+check('moving train: parked until 85 m before the meeting, then comes at 1.05x the runner speed', await p.ev(`(() => {
   const R = __run, S = R.sim; __t.fresh(1, 20); const id = R.place('mtrain', 1, 120, 1); const o = __t.ob(id);
   const a = o.d0; R.step(1, 1 / 120); const parked = Math.abs(o.d0 - a) < 1e-6;
-  __t.until(() => o.meet - S.d < 60); const b = o.d0; R.step(0.5, 1 / 120); const moved = b - o.d0;
-  return parked && Math.abs(moved - 0.6 * 20 * 0.5) < 0.2;
+  __t.until(() => o.meet - S.d < 70); const b = o.d0; R.step(0.5, 1 / 120); const moved = b - o.d0;
+  return parked && Math.abs(moved - 1.05 * 20 * 0.5) < 0.2;
 })()`));
 
 // ---------------------------------------------------------------- forgiving edges

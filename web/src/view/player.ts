@@ -16,6 +16,7 @@ export class PlayerView {
   private yawV = 0;
   private stumbleT = 0;
   private menuT = 0;
+  private board: THREE.Group;
 
   constructor(scene: THREE.Scene) {
     this.root.add(this.figure.root);
@@ -24,6 +25,17 @@ export class PlayerView {
       if (m.isMesh) m.frustumCulled = false;
     });
     scene.add(this.root);
+    // hoverboard, shown when the board power is on
+    this.board = new THREE.Group();
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.07, 1.15), new THREE.MeshLambertMaterial({ color: 0x2a3550 }));
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.2), new THREE.MeshLambertMaterial({ color: 0x3f6dff, emissive: 0x1c3aa0 }));
+    nose.position.z = -0.62;
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.9), new THREE.MeshBasicMaterial({ color: 0x8fd4ff }));
+    strip.position.y = 0.045;
+    this.board.add(deck, nose, strip);
+    this.board.position.y = 0.06;
+    this.board.visible = false;
+    this.root.add(this.board);
   }
 
   private spring(dt: number, target: number, k: 'lean' | 'yaw', kv: 'leanV' | 'yawV', stiff: number, damp: number) {
@@ -74,6 +86,13 @@ export class PlayerView {
     else if (sim.sliding) state = 'slide';
     else if (!sim.grounded) state = 'air';
     this.figure.update(dt, state, sim.speed);
+    const riding = sim.power.board > 0 && sim.alive;
+    this.board.visible = riding;
+    if (riding) {
+      this.board.position.y = 0.07 + Math.sin(this.menuT * 9) * 0.015;
+      this.board.rotation.z = -this.lean * 0.12;
+    }
+    this.menuT += dt;
 
     // lane changes: lean and turn toward where we are going, on damped springs
     const toGo = laneX(sim.lane) - sim.x;

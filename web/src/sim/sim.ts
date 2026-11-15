@@ -5,7 +5,7 @@ import {
   PLAYER, GRAVITY, JUMP_V, SUPER_JUMP_V, OB, laneX, speedAt, POWER_TIME, MAGNET_RANGE, VIEW_AHEAD, LANE_COUNT,
   trainLength, moverFront, moverSpan,
 } from '../config';
-import type { Ob, Coin, Power, SimEvent, ObKind, PowerKind, Hint } from './types';
+import type { Ob, Coin, Power, KeyItem, SimEvent, ObKind, PowerKind, Hint } from './types';
 import { Track, type Spec } from './track';
 export type { Spec };
 
@@ -43,12 +43,15 @@ export class Sim {
   coinStreak = 0;
   coinStreakT = 0;
   score = 0;
-  power: Record<PowerKind, number> = { magnet: 0, shoes: 0, double: 0 };
+  power: Record<PowerKind, number> = { magnet: 0, shoes: 0, double: 0, board: 0 };
+  keys = 0; // keys picked up in this run
+  invT = 0; // seconds of invincibility after a revive
   baseMult = 1;
   // world
   obs: Ob[] = [];
   coinList: Coin[] = [];
   powers: Power[] = [];
+  keyList: KeyItem[] = [];
   events: SimEvent[] = [];
   track: Track;
   invincible = false; // test switch
@@ -59,6 +62,8 @@ export class Sim {
   private freeObs: Ob[] = [];
   private freeCoins: Coin[] = [];
   private freePowers: Power[] = [];
+  private freeKeys: KeyItem[] = [];
+  private nextKeyAt = 260;
   created = { obs: 0, coins: 0, powers: 0 };
 
   constructor(seed = 1) {
@@ -73,9 +78,14 @@ export class Sim {
     for (const o of this.obs) this.freeObs.push(o);
     for (const c of this.coinList) this.freeCoins.push(c);
     for (const p of this.powers) this.freePowers.push(p);
+    for (const k of this.keyList) this.freeKeys.push(k);
     this.obs.length = 0;
     this.coinList.length = 0;
     this.powers.length = 0;
+    this.keyList.length = 0;
+    this.keys = 0;
+    this.invT = 0;
+    this.nextKeyAt = 260;
     this.events.length = 0;
     Object.assign(this, {
       lane: 1, fromX: 0, laneT: 1, x: 0, y: 0, vy: 0, grounded: true, groundY: 0, slideT: 0, fastFall: false,
@@ -83,7 +93,7 @@ export class Sim {
       sinceStumble: 99, stumbleSlow: 0, ignoreId: -1, ignoreT: 0, airTime: 0, peakY: 0, coins: 0, coinStreak: 0,
       coinStreakT: 0, score: 0, baseMult: 1,
     });
-    this.power = { magnet: 0, shoes: 0, double: 0 };
+    this.power = { magnet: 0, shoes: 0, double: 0, board: 0 };
     this.track.reset(seed, tutorial);
     if (!this.noSpawn) this.track.ensure(VIEW_AHEAD);
   }
@@ -114,6 +124,11 @@ export class Sim {
     Object.assign(c, { id: this.nextId++, lane, d, y, x: laneX(lane), pulled: false });
     this.coinList.push(c);
   }
+  addKey(lane: number, d: number, y = 1.25) {
+    const k = this.freeKeys.pop() || ({} as KeyItem);
+    Object.assign(k, { id: this.nextId++, lane, d, y, x: laneX(lane) });
+    this.keyList.push(k);
+  }
   addPower(kind: PowerKind, lane: number, d: number, y: number) {
     const p = this.freePowers.pop() || ({} as Power);
     if (!p.id) this.created.powers++;
@@ -135,9 +150,11 @@ export class Sim {
     for (const o of this.obs) this.freeObs.push(o);
     for (const c of this.coinList) this.freeCoins.push(c);
     for (const p of this.powers) this.freePowers.push(p);
+    for (const k of this.keyList) this.freeKeys.push(k);
     this.obs.length = 0;
     this.coinList.length = 0;
     this.powers.length = 0;
+    this.keyList.length = 0;
   }
 
   // ------------------------------------------------------------------ input
@@ -222,12 +239,13 @@ export class Sim {
     this.sinceStumble += dt;
     this.stumbleSlow = Math.max(0, this.stumbleSlow - dt);
     this.ignoreT = Math.max(0, this.ignoreT - dt);
+    this.invT = Math.max(0, this.invT - dt);
     this.coyoteT = Math.max(0, this.coyoteT - dt);
     this.jumpBufT = Math.max(0, this.jumpBufT - dt);
     this.coinStreakT = Math.max(0, this.coinStreakT - dt);
     if (this.coinStreakT === 0) this.coinStreak = 0;
     if (this.slideT > 0) this.slideT = Math.max(0, this.slideT - dt);
-    for (const k of ['magnet', 'shoes', 'double'] as PowerKind[]) {
+    for (const k of ['magnet', 'shoes', 'double', 'board'] as PowerKind[]) {
       if (this.power[k] > 0) {
         this.power[k] = Math.max(0, this.power[k] - dt);
         if (this.power[k] === 0) this.events.push({ type: 'powerEnd', kind: k });
@@ -324,6 +342,7 @@ export class Sim {
   }
 
   private collide(px: number, py: number, pd: number, ph: number) {
+    if (this.invT > 0) return;
     const h = this.bodyH;
     for (const o of this.obs) {
       if (o.d0 > this.d + 8 || o.d1 < this.d - 8) continue;
@@ -418,6 +437,14 @@ export class Sim {
   }
 
   private crash(kind: ObKind | 'caught', o?: Ob) {
+    if (this.power.board > 0) {
+      // the board takes the hit: one crash absorbed, then it is gone
+      this.power.board = 0;
+      this.invT = 1.4;
+      if (o) { this.ignoreId = o.id; this.ignoreT = 1.4; }
+      this.events.push({ type: 'boardBreak', x: this.x, y: this.y });
+      return;
+    }
     if (this.invincible) {
       // test switch: count it, then run through
       this.events.push({ type: 'stumble', x: this.x, y: this.y });
@@ -429,7 +456,54 @@ export class Sim {
     this.events.push({ type: 'crash', kind, x: this.x, y: this.y });
   }
 
+  /** Back on your feet after a crash, keys spent: clear the road just ahead. */
+  revive() {
+    this.alive = true;
+    this.invT = 3;
+    this.sinceStumble = 99;
+    this.stumbleSlow = 0;
+    this.y = 0;
+    this.groundY = 0;
+    this.vy = 0;
+    this.grounded = true;
+    this.slideT = 0;
+    for (let i = this.obs.length - 1; i >= 0; i--) {
+      const o = this.obs[i];
+      if (o.d1 > this.d - 2 && o.d0 < this.d + 55) {
+        this.freeObs.push(o);
+        this.obs.splice(i, 1);
+      }
+    }
+    this.events.push({ type: 'revive', x: this.x, y: this.y });
+  }
+
+  /** A key every few hundred metres, in a lane that is actually free. */
+  private spawnKeys() {
+    while (this.nextKeyAt < this.d + 240) {
+      this.nextKeyAt += 680 + ((this.nextKeyAt * 37) % 220);
+      const lane = Math.abs(Math.floor(this.nextKeyAt / 7)) % LANE_COUNT;
+      const at = this.nextKeyAt;
+      let blocked = false;
+      for (const o of this.obs) {
+        if (o.lane !== lane) continue;
+        if (o.d1 > at - 3 && o.d0 < at + 3) { blocked = true; break; }
+      }
+      if (blocked) continue;
+      this.addKey(lane, at);
+    }
+  }
+
   private pickups(dt: number) {
+    this.spawnKeys();
+    for (let i = this.keyList.length - 1; i >= 0; i--) {
+      const k = this.keyList[i];
+      if (Math.abs(k.d - this.d) < 1.1 && Math.abs(laneX(k.lane) - this.x) < 1.15 && k.y > this.y - 0.6 && k.y < this.y + this.bodyH + 0.7) {
+        this.keys++;
+        this.events.push({ type: 'key', x: laneX(k.lane), y: k.y });
+        this.freeKeys.push(k);
+        this.keyList.splice(i, 1);
+      }
+    }
     const h = this.bodyH;
     const magnet = this.power.magnet > 0;
     for (let i = this.coinList.length - 1; i >= 0; i--) {

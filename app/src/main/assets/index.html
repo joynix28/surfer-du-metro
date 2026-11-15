@@ -7,7 +7,7 @@
 <meta name="description" content="Runner 3D dans l’Île-de-France : ligne J, gares réelles, sans publicité." />
 <link rel="icon" href="./favicon.ico" />
 <title>Métro IDF</title>
-<script>window.__MANIFEST={"js":["./assets/index-B75ysl6P.js",572611]}</script>
+<script>window.__MANIFEST={"js":["./assets/index-C6slIQ4h.js",586510]}</script>
 <style>
 :root{--ink:#0e1219;--sky:#1f3f6b;--gold:#ffcf3f;--red:#d1402f;--plum:#6c4b9e;--panel:rgba(10,18,32,.82);--line:rgba(255,255,255,.16)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -34,7 +34,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#122a4a;color:#fff;fon
 .hud-right{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(10px + env(safe-area-inset-top));text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .score{font-size:clamp(24px,5.4vw,34px);font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.04em;text-shadow:0 2px 0 rgba(0,0,0,.35)}
 .hud-row{display:flex;gap:8px;align-items:center}
-.mult,.coins{background:var(--panel);border-radius:12px;padding:5px 10px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.mult,.coins,.keys{background:var(--panel);border-radius:12px;padding:5px 10px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.keys{color:#ffd24a}
+.keys svg{width:15px;height:15px}
 .mult.hot{background:var(--red)}
 .coins.pop{animation:pop .22s ease-out}
 @keyframes pop{50%{transform:scale(1.18)}}
@@ -83,6 +85,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#122a4a;color:#fff;fon
 button{font:inherit;color:inherit}
 .big{border:0;border-radius:16px;padding:14px;font-size:20px;font-weight:900;background:linear-gradient(#ffd25e,#f2a516);color:#3a2500;box-shadow:0 4px 0 #b97700;cursor:pointer}
 .big:active{transform:translateY(2px);box-shadow:0 2px 0 #b97700}
+.big.revive{background:linear-gradient(#8ce7ac,#2fb36b);color:#06331c;box-shadow:0 4px 0 #1c7a49}
+.big.revive.off{opacity:.45;box-shadow:none}
 .ghost{border:1px solid var(--line);border-radius:14px;padding:11px;font-size:16px;font-weight:700;background:transparent;cursor:pointer}
 .ctrl{margin:0;font-size:13px;opacity:.8;line-height:1.5}
 .row{display:flex;gap:8px;justify-content:center}

@@ -375,7 +375,7 @@ export class Track {
   }
 
   private placePower(path: PathPt[], specs: Spec[], start: number, end: number) {
-    const kinds: PowerKind[] = ['magnet', 'shoes', 'double'];
+    const kinds: PowerKind[] = ['magnet', 'shoes', 'double', 'board'];
     const kind = this.rng.pick(kinds);
     for (let d = this.nextPower; d < end - 5; d += 3) {
       const i = Math.min(path.length - 1, Math.round((d - start) / STEP));

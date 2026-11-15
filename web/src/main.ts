@@ -3,11 +3,11 @@ import * as THREE from 'three';
 import { Sim } from './sim/sim';
 import { solve, type Spec } from './sim/track';
 import { World } from './view/world';
-import { LINE } from './data/route';
 import { Audio } from './audio';
 import { bindInput, type Action } from './input';
 import { UI, type Screen } from './ui';
 import { t, type Key } from './i18n';
+import { stations } from './data/route';
 import { load, save } from './storage';
 import { OB, trainLength, speedAt, SPEED, laneX, MOVER } from './config';
 import type { ObKind, PowerKind, SimEvent } from './sim/types';
@@ -56,6 +56,10 @@ async function main() {
   audio.setMuted(load('muted', false));
   let best = load('best', 0);
   let bank = load('bank', 0);
+  let keyBank = load('keys', 0);
+  let revives = 0; // per run: the price doubles each time
+  let bankedCoins = 0;
+  const reviveCost = () => Math.min(64, 1 << revives);
   let state: Screen = 'intro';
   let overTimer = 0;
   const horned = new Set<number>();
@@ -95,11 +99,14 @@ async function main() {
     home: () => toTitle(true),
     toggleMute,
     langChanged: () => {},
+    revive: () => revive(),
   }, audio.muted);
 
   let seed = (Date.now() % 100000) + 1;
   function toTitle(show: boolean) {
     seed = (seed * 48271) % 2147483647;
+    revives = 0;
+    bankedCoins = 0;
     sim.reset(seed, !load('tutorialDone', false));
     world.resetScenery();
     world.fx.clear();
@@ -108,6 +115,20 @@ async function main() {
     state = 'start';
     ui.setStart(best, bank);
     if (show) ui.show('start');
+  }
+  function revive() {
+    if (state !== 'over') return;
+    const cost = reviveCost();
+    if (keyBank < cost) return;
+    keyBank -= cost;
+    save('keys', keyBank);
+    revives++;
+    bankedCoins = sim.coins;
+    sim.revive();
+    state = 'play';
+    audio.unlock();
+    audio.power();
+    ui.show('play');
   }
   function skipIntro() {
     if (state !== 'intro') return;
@@ -165,6 +186,9 @@ async function main() {
       case 'land': if (ev.fall > 0.5) audio.land(); break;
       case 'coin': audio.coin(ev.streak); break;
       case 'power': audio.power(); ui.toast(t(ev.kind)); ui.flash('power'); break;
+      case 'key': audio.coin(4); keyBank++; save('keys', keyBank); ui.flash('power'); break;
+      case 'boardBreak': audio.bump(); ui.flash('hit'); ui.toast(t('board'), 900); break;
+      case 'revive': ui.flash('power'); break;
       case 'powerEnd': audio.powerEnd(); break;
       case 'level': audio.level(); ui.toast(t('mult') + ' ×' + ev.mult); break;
       case 'stumble': audio.stumble(); ui.flash('hit'); ui.toast(t('careful'), 1600); break;
@@ -175,9 +199,10 @@ async function main() {
         const score = Math.floor(sim.score);
         const newBest = score > best;
         if (newBest) { best = score; save('best', best); }
-        bank += sim.coins;
+        bank += sim.coins - bankedCoins;
+        bankedCoins = sim.coins;
         save('bank', bank);
-        ui.result({ score, coins: sim.coins, distance: Math.floor(sim.d), best, newBest });
+        ui.result({ score, coins: sim.coins, distance: Math.floor(sim.d), best, newBest, reviveCost: reviveCost(), canRevive: keyBank >= reviveCost() });
         overTimer = 0;
         break;
       }
@@ -235,7 +260,7 @@ async function main() {
     world.sync(sim, state === 'pause' ? 0 : dt, state === 'start');
     const st = world.takeStation();
     if (st && state === 'play') {
-      ui.station(st.short, `SORTIE · LIGNE ${LINE}`);
+      ui.station(st.short, st.line, st.color, `SORTIE · LIGNE ${st.line}`);
       audio.chime();
     }
     audio.tempo = 108 + (sim.speed - SPEED.start) * 1.6;
@@ -251,7 +276,7 @@ async function main() {
       if (horned.size > 50) horned.clear();
     }
     audio.rumble(rumble);
-    ui.hud(Math.floor(sim.score), sim.coins, sim.mult, sim.power);
+    ui.hud(Math.floor(sim.score), sim.coins, sim.mult, sim.power, keyBank);
     if (draw) renderer.render(world.scene, world.camera);
   }
 
@@ -301,7 +326,7 @@ async function main() {
     window.__run = {
       ready: true,
       sceneryReady,
-      sim, world, renderer,
+      sim, world, renderer, stations,
       start(o: { seed?: number; tutorial?: boolean; noSpawn?: boolean; invincible?: boolean; speed?: number } = {}) {
         sim.noSpawn = !!o.noSpawn;
         sim.invincible = !!o.invincible;

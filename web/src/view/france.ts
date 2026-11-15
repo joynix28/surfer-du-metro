@@ -251,11 +251,18 @@ export function facadeTexture(kind: FacadeKind, variant: number): THREE.CanvasTe
 }
 
 /** Side livery of one car: cream body, plum window band, doors, yellow line. */
+const LIVERIES = [
+  { body: '#e9ecef', band: '#6c4b9e', skirt: '#2b3138', stripe: '#f0c94a', lamp: '#f8f4e2' }, // Transilien
+  { body: '#dfe4e8', band: '#20518f', skirt: '#26303a', stripe: '#c9d4e0', lamp: '#fff4d0' }, // TGV
+  { body: '#f0f2f4', band: '#1f8a91', skirt: '#2a3238', stripe: '#e94f37', lamp: '#eafcff' }, // metro
+];
+
 export function trainTexture(variant: number): THREE.CanvasTexture {
   const W = 1024, H = 384;
   const { c, g } = canvas(W, H);
+  const live = LIVERIES[variant % LIVERIES.length];
   const rnd = seeded(variant * 3571 + 13);
-  g.fillStyle = variant % 2 ? '#e8ebef' : '#dfe4ea';
+  g.fillStyle = live.body;
   g.fillRect(0, 0, W, H);
   // roof edge
   g.fillStyle = '#2d333b';
@@ -280,7 +287,7 @@ export function trainTexture(variant: number): THREE.CanvasTexture {
   }
   // doors with glass panels
   for (const dx of doors) {
-    g.fillStyle = LINE_COLOR;
+    g.fillStyle = live.band;
     g.fillRect(dx - 46, 96, 92, 232);
     g.fillStyle = '#151c24';
     g.fillRect(dx - 34, 108, 30, 96);
@@ -294,11 +301,11 @@ export function trainTexture(variant: number): THREE.CanvasTexture {
     g.fillText(LINE, dx, 240);
   }
   // lower band and doors' kick plates
-  g.fillStyle = LINE_COLOR;
+  g.fillStyle = live.band;
   g.fillRect(0, 250, W, 16);
-  g.fillStyle = '#f0c94a';
+  g.fillStyle = live.stripe;
   g.fillRect(0, 272, W, 10);
-  g.fillStyle = '#2b3138';
+  g.fillStyle = live.skirt;
   g.fillRect(0, 300, W, H - 300);
   // grime and highlights
   for (let i = 0; i < 120; i++) {
@@ -315,10 +322,11 @@ export function trainTexture(variant: number): THREE.CanvasTexture {
 }
 
 /** Cab end: destination blind, windscreen, headlights, skirt. */
-export function cabTexture(): THREE.CanvasTexture {
+export function cabTexture(variant = 0): THREE.CanvasTexture {
   const W = 256, H = 320;
   const { c, g } = canvas(W, H);
-  g.fillStyle = '#e7ebf0';
+  const live = LIVERIES[variant % LIVERIES.length];
+  g.fillStyle = live.body;
   g.fillRect(0, 0, W, H);
   g.fillStyle = '#2c333b';
   g.fillRect(0, 0, W, 22);
@@ -365,17 +373,17 @@ export function cabTexture(): THREE.CanvasTexture {
   // line badge on the nose
   g.fillStyle = '#ffffff';
   g.beginPath(); g.arc(128, 238, 17, 0, Math.PI * 2); g.fill();
-  g.fillStyle = LINE_COLOR;
+  g.fillStyle = live.band;
   g.beginPath(); g.arc(128, 238, 13, 0, Math.PI * 2); g.fill();
   g.fillStyle = '#ffffff';
   g.font = `800 18px ${FONT}`;
   g.fillText(LINE, 128, 239);
   // livery bands and skirt
-  g.fillStyle = LINE_COLOR;
+  g.fillStyle = live.band;
   g.fillRect(0, 264, W, 20);
-  g.fillStyle = '#f0c94a';
+  g.fillStyle = live.stripe;
   g.fillRect(0, 286, W, 9);
-  g.fillStyle = '#262c33';
+  g.fillStyle = live.skirt;
   g.fillRect(0, 296, W, H - 296);
   g.fillStyle = '#3b424a';
   g.fillRect(100, 300, 56, 20);
@@ -385,7 +393,7 @@ export function cabTexture(): THREE.CanvasTexture {
 /** The board over the tracks: line badge, station name, exits. */
 export const SIGN_W = 1024;
 export const SIGN_H = 256;
-export function paintSign(g: CanvasRenderingContext2D, name: string, sub: string) {
+export function paintSign(g: CanvasRenderingContext2D, name: string, line: string, color: string, sub: string) {
   const W = SIGN_W, H = SIGN_H;
   g.clearRect(0, 0, W, H);
   g.fillStyle = '#0b2748';
@@ -398,13 +406,13 @@ export function paintSign(g: CanvasRenderingContext2D, name: string, sub: string
   // line roundel
   g.fillStyle = '#ffffff';
   g.beginPath(); g.arc(112, 128, 78, 0, Math.PI * 2); g.fill();
-  g.fillStyle = LINE_COLOR;
+  g.fillStyle = color;
   g.beginPath(); g.arc(112, 128, 66, 0, Math.PI * 2); g.fill();
   g.fillStyle = '#ffffff';
-  g.font = `800 96px ${FONT}`;
+  g.font = `800 ${line.length > 1 ? 62 : 96}px ${FONT}`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText(LINE, 112, 132);
+  g.fillText(line, 112, 132);
   // station name, shrunk to fit
   let size = 104;
   do {
@@ -423,9 +431,9 @@ export function paintSign(g: CanvasRenderingContext2D, name: string, sub: string
   g.fillRect(0, H - 10, W * 0.35, 10);
 }
 
-export function signTexture(name: string, sub: string): THREE.CanvasTexture {
+export function signTexture(name: string, line: string, color: string, sub: string): THREE.CanvasTexture {
   const { c, g } = canvas(SIGN_W, SIGN_H);
-  paintSign(g, name, sub);
+  paintSign(g, name, line, color, sub);
   return texture(c);
 }
 

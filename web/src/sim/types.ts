@@ -1,5 +1,5 @@
 export type ObKind = 'low' | 'hurdle' | 'overhead' | 'train' | 'ramp' | 'mtrain';
-export type PowerKind = 'magnet' | 'shoes' | 'double';
+export type PowerKind = 'magnet' | 'shoes' | 'double' | 'board';
 export type Hint = 'jump' | 'slide' | 'lane' | 'ramp';
 
 export interface Ob {
@@ -39,6 +39,14 @@ export interface Power {
   y: number;
 }
 
+export interface KeyItem {
+  id: number;
+  lane: number;
+  d: number;
+  y: number;
+  x: number;
+}
+
 export type SimEvent =
   | { type: 'jump'; super: boolean }
   | { type: 'land'; fall: number }
@@ -51,4 +59,7 @@ export type SimEvent =
   | { type: 'power'; kind: PowerKind; x: number; y: number }
   | { type: 'powerEnd'; kind: PowerKind }
   | { type: 'hint'; hint: Hint }
-  | { type: 'level'; mult: number };
+  | { type: 'level'; mult: number }
+  | { type: 'key'; x: number; y: number }
+  | { type: 'boardBreak'; x: number; y: number }
+  | { type: 'revive'; x: number; y: number };

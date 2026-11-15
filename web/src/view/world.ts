@@ -8,7 +8,7 @@ import { PlayerView } from './player';
 import { trackTexture, pavingTexture, groundTexture, skyTexture, glowTexture, powerTexture, rampTexture, HORIZON } from './textures';
 import { waterTexture, distantTexture } from './france';
 import { buildings, treeProto, benchProto, type BuildingDef } from './buildings';
-import { trainProto, lowBarrierProto, hurdleProto, overheadProto, tokenProto, graffitiProto, canopyProto, bridgeProto, ediculeProto } from './props';
+import { trainProto, noseProto, lowBarrierProto, hurdleProto, overheadProto, tokenProto, graffitiProto, canopyProto, bridgeProto, ediculeProto, keyProto, eiffelProto } from './props';
 import { copProto } from './figures';
 import { StationSigns } from './signs';
 import { Intro, type IntroCue } from './intro3d';
@@ -16,7 +16,7 @@ import { LANE_W, laneX, CAR_LEN, CAR_GAP, VIEW_AHEAD, OB } from '../config';
 import type { Sim } from '../sim/sim';
 import type { SimEvent, PowerKind, Ob } from '../sim/types';
 import { Rng } from '../sim/rng';
-import { zoneAt, stationIndexAt, stations, type Station, type Zone } from '../data/route';
+import { zoneAt, stationIndexAt, stationAt, stations, type Station, type Zone } from '../data/route';
 
 const m4 = new THREE.Matrix4();
 const q = new THREE.Quaternion();
@@ -25,7 +25,7 @@ const v = new THREE.Vector3();
 const one = new THREE.Vector3(1, 1, 1);
 const sc = new THREE.Vector3();
 const POWER_COLORS: Record<PowerKind, THREE.Color> = {
-  magnet: new THREE.Color('#ff5a64'), shoes: new THREE.Color('#3ee08a'), double: new THREE.Color('#ffc23d'),
+  magnet: new THREE.Color('#ff5a64'), shoes: new THREE.Color('#3ee08a'), double: new THREE.Color('#ffc23d'), board: new THREE.Color('#5b8cff'),
 };
 const LIGHT = new THREE.Color(1.0, 0.92, 0.65);
 const LIGHT_RED = new THREE.Color(1.0, 0.25, 0.2);
@@ -55,7 +55,9 @@ export class World {
   fx: Fx;
   private pools: Record<string, Instanced> = {};
   private trains: Instanced[] = [];
+  private noses: Instanced[] = [];
   private coins: Instanced;
+  private keys: Instanced;
   private halos: Instanced;
   private powerCards: Record<PowerKind, Instanced>;
   private poles: Instanced;
@@ -64,6 +66,8 @@ export class World {
   private canopies: Instanced;
   private bridges: Instanced;
   private edicules: Instanced;
+  private eiffel: Instanced;
+  private grands: Instanced;
   private skyline: Instanced;
   private trees: Instanced;
   private benches: Instanced;
@@ -88,6 +92,15 @@ export class World {
   private stationIdx = -1;
   private pending: Station | null = null;
   private tint = new THREE.Color(1, 1, 1);
+  private dayT = 0.16; // 0 = dawn, 0.25 = noon, 0.5 = dusk, 0.75 = night
+  private hemi: THREE.HemisphereLight;
+  private rain: THREE.LineSegments;
+  private rainOn = false;
+  private rainLevel = 0;
+  private sunFactor = 1;
+  private rainData: Float32Array;
+  private nightFog = new THREE.Color('#1c2536');
+  private dayFog = new THREE.Color('#e9dcc8');
   time = 0;
 
   constructor(quality: { shadowSize: number }) {
@@ -97,6 +110,7 @@ export class World {
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 260);
     const hemi = new THREE.HemisphereLight(0xdcecff, 0x8a7a62, 1.3);
     s.add(hemi);
+    this.hemi = hemi;
     this.sun = new THREE.DirectionalLight(0xfff1dc, 2.05);
     this.sun.position.set(9, 22, 4);
     this.sun.target.position.set(0, 0, -14);
@@ -122,9 +136,11 @@ export class World {
     this.pools.hurdle = new Instanced(hurdleProto(), 24, s, { cast: true, receive: true });
     this.pools.overhead = new Instanced(overheadProto(), 24, s, { cast: true, receive: true });
     this.pools.ramp = new Instanced(rampMesh(), 16, s, { cast: true, receive: true });
-    this.trains = [new Instanced(trainProto(0), 46, s, { cast: true, receive: true, colors: true }), new Instanced(trainProto(1), 46, s, { cast: true, receive: true, colors: true })];
+    this.trains = [0, 1, 2].map((v) => new Instanced(trainProto(v), 46, s, { cast: true, receive: true, colors: true }));
+    this.noses = [0, 1, 2].map((v) => new Instanced(noseProto(v), 8, s, { cast: true, receive: true }));
 
     this.coins = new Instanced(tokenProto(), 320, s, { cast: false });
+    this.keys = new Instanced(keyProto(), 12, s, { cast: false });
     const glowMat = new THREE.MeshBasicMaterial({ map: glowTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glowMat);
     glow.name = 'glow';
@@ -135,7 +151,7 @@ export class World {
       m.name = 'power-' + k;
       return new Instanced(m, 4, s);
     };
-    this.powerCards = { magnet: card('magnet'), shoes: card('shoes'), double: card('double') };
+    this.powerCards = { magnet: card('magnet'), shoes: card('shoes'), double: card('double'), board: card('board') };
 
     // buildings, trees and benches: the Île-de-France skin
     this.defs = buildings();
@@ -147,10 +163,29 @@ export class World {
     this.canopies = new Instanced(canopyProto(), 4, s, { cast: true, receive: true });
     this.bridges = new Instanced(bridgeProto(), 3, s, { cast: true, receive: true });
     this.edicules = new Instanced(ediculeProto(), 4, s, { cast: true, receive: true });
+    this.eiffel = new Instanced(eiffelProto(), 1, s, { name: 'eiffel' });
+    this.grands = new Instanced(new THREE.Mesh(new THREE.BoxGeometry(16, 1, 16), new THREE.MeshLambertMaterial({ map: distantTexture(), color: 0xa9bccb })), 8, s, { name: 'grands' });
     const far = new THREE.MeshLambertMaterial({ map: distantTexture(), color: 0xb9b5ab });
     this.skyline = new Instanced(new THREE.Mesh(new THREE.BoxGeometry(14, 1, 14), far), 10, s, { name: 'skyline' });
     this.signs = new StationSigns(s);
     this.intro = new Intro(s);
+
+    // rain: short vertical dashes in a box that follows the camera
+    this.rainData = new Float32Array(360 * 6);
+    for (let i = 0; i < 360; i++) {
+      const x = (Math.random() - 0.5) * 46;
+      const y = Math.random() * 26;
+      const z = (Math.random() - 0.5) * 70;
+      const k = i * 6;
+      this.rainData[k] = x; this.rainData[k + 1] = y; this.rainData[k + 2] = z;
+      this.rainData[k + 3] = x; this.rainData[k + 4] = y + 1.5; this.rainData[k + 5] = z;
+    }
+    const rainGeo = new THREE.BufferGeometry();
+    rainGeo.setAttribute('position', new THREE.BufferAttribute(this.rainData, 3));
+    this.rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0x93b7d4, transparent: true, opacity: 0 }));
+    this.rain.frustumCulled = false;
+    this.rain.visible = false;
+    s.add(this.rain);
 
     this.player = new PlayerView(s);
     this.fx = new Fx(s);
@@ -306,10 +341,12 @@ export class World {
     if (zone !== this.zone) this.applyZone(zone);
     const fog = this.scene.fog as THREE.Fog;
     fog.color.lerp(this.fogTarget, Math.min(1, dt * 1.2));
+    this.updateSky(sim, dt);
 
     // obstacles
     for (const k in this.pools) this.pools[k].begin();
     for (const t of this.trains) t.begin();
+    for (const n of this.noses) n.begin();
     const movers: Ob[] = [];
     for (const o of sim.obs) {
       if (o.d0 > pd + VIEW_AHEAD || o.d1 < pd - 12) continue;
@@ -321,6 +358,11 @@ export class World {
           m4.makeTranslation(x, 0, zOf(dc));
           pool.add(m4, WHITE);
         }
+        const nose = this.noses[o.variant % this.noses.length];
+        m4.makeTranslation(x, 0, zOf(o.d0));
+        nose.add(m4);
+        m4.makeRotationY(Math.PI).setPosition(x, 0, zOf(o.d1));
+        nose.add(m4);
         if (o.kind === 'mtrain') movers.push(o);
       } else {
         m4.makeTranslation(x, 0, zOf((o.d0 + o.d1) / 2));
@@ -329,6 +371,7 @@ export class World {
     }
     for (const k in this.pools) this.pools[k].end();
     for (const t of this.trains) t.end();
+    for (const n of this.noses) n.end();
 
     // coins + glow
     this.coins.begin();
@@ -344,6 +387,19 @@ export class World {
       m4.compose(v.set(c.x, c.y, z + 0.05), camQ, sc.set(0.55, 0.55, 0.55));
       this.halos.add(m4, gold);
     }
+    // keys: a slow spin and a glow, easy to spot from far away
+    this.keys.begin();
+    const keyGlow = new THREE.Color(0xffd75a).multiplyScalar(0.6);
+    for (const k of sim.keyList) {
+      if (k.d > pd + VIEW_AHEAD - 20 || k.d < pd - 3) continue;
+      const z = zOf(k.d);
+      q.setFromEuler(e.set(0, this.time * 2.2, 0));
+      m4.compose(v.set(laneX(k.lane), k.y + Math.sin(this.time * 2.4 + k.d) * 0.08, z), q, one);
+      this.keys.add(m4);
+      m4.compose(v.set(laneX(k.lane), k.y + 0.1, z + 0.05), camQ, sc.set(1.1, 1.1, 1.1));
+      this.halos.add(m4, keyGlow);
+    }
+    this.keys.end();
     // power-up cards
     for (const k in this.powerCards) this.powerCards[k as PowerKind].begin();
     for (const p of sim.powers) {
@@ -373,6 +429,18 @@ export class World {
       const len = 18;
       m4.compose(v.set(x, 0.06, z + len / 2), FLAT, sc.set(2.2, len, 1));
       this.halos.add(m4, LIGHT.clone().multiplyScalar(0.35 + 0.15 * blink));
+    }
+    // street lamps light up when the sun goes down
+    if (this.sunFactor < 0.5) {
+      const glow = new THREE.Color(1.0, 0.82, 0.5).multiplyScalar(0.5 + (1 - this.sunFactor) * 0.7);
+      const firstPole = Math.floor((pd - 10) / 16) * 16;
+      for (let dd = firstPole; dd < pd + 120; dd += 16) {
+        for (const side of [-1, 1]) {
+          const x = side * (SIDEWALK_IN + 0.3) - side * 1.7;
+          m4.compose(v.set(x, 6.5, zOf(dd + (side > 0 ? 0 : 8))), camQ, sc.set(1.5, 1.5, 1.5));
+          this.halos.add(m4, glow);
+        }
+      }
     }
     this.coins.end();
     this.halos.end();
@@ -525,7 +593,7 @@ export class World {
 
     // bridges over the line on the riverside stretches, metro entrances in Paris
     this.bridges.begin();
-    for (let d = Math.ceil((pd - 120) / 620) * 620; d < pd + 300; d += 620) {
+    for (let d = Math.ceil((pd + 140) / 620) * 620; d < pd + 480; d += 620) {
       const zone = zoneAt(d);
       if (zone !== 'seine' && zone !== 'ville') continue;
       m4.makeTranslation(0, 0, zOf(d));
@@ -540,6 +608,30 @@ export class World {
       this.edicules.add(m4);
     }
     this.edicules.end();
+
+    // landmarks: the Eiffel Tower from the Trocadéro stretch, the towers of La Défense
+    this.eiffel.begin();
+    this.grands.begin();
+    const firstL = stationIndexAt(pd - 60);
+    const lastL = stationIndexAt(pd + 460);
+    for (let i = firstL; i <= lastL; i++) {
+      const st = stations[i % stations.length];
+      const z = zOf(st.d0 + 150);
+      if (z > 60 || z < -460) continue;
+      if (st.landmark === 'eiffel') {
+        m4.makeTranslation(-62, 0, z);
+        this.eiffel.add(m4);
+      } else if (st.landmark === 'defense') {
+        for (let k = 0; k < 4; k++) {
+          const h = 52 + ((k * 17 + i * 7) % 38);
+          const side = k % 2 ? 1 : -1;
+          m4.makeScale(1 + (k % 2) * 0.4, h, 1).setPosition(side * (44 + k * 9), h / 2, z - k * 40);
+          this.grands.add(m4);
+        }
+      }
+    }
+    this.eiffel.end();
+    this.grands.end();
 
     // a hazy skyline behind the roofs: far enough to stay a backdrop, only on the built-up side
     this.skyline.begin();
@@ -576,6 +668,45 @@ export class World {
     this.stationIdx = -1;
     this.pending = null;
     this.player.reset();
+  }
+
+  /** Day and night, and the rain of the station we are in. */
+  private updateSky(sim: Sim, dt: number) {
+    this.dayT = (this.dayT + dt / 420) % 1;
+    // 0 at night, 1 at noon
+    const sun = Math.max(0, Math.sin(this.dayT * Math.PI * 2));
+    this.sunFactor = sun;
+    const warm = 1 - Math.min(1, Math.abs(this.dayT - 0.25) * 6); // orange near dawn/dusk
+    const st = stationAt(sim.d);
+    // one station in five is under a shower
+    const wet = (st.index * 7 + 3) % 5 === 0;
+    this.rainOn = wet && !this.introActive;
+    this.rainLevel += ((this.rainOn ? 1 : 0) - this.rainLevel) * Math.min(1, dt * 0.6);
+    const grey = 1 - this.rainLevel * 0.55;
+    this.sun.intensity = (0.12 + 1.95 * sun) * grey;
+    this.hemi.intensity = (0.28 + 1.05 * sun) * grey;
+    this.sun.color.setRGB(1, 0.86 + warm * 0.08, 0.72 + (1 - warm) * 0.22);
+    this.scene.backgroundIntensity = 0.32 + 0.78 * sun;
+    const target = this.dayFog.clone().lerp(this.nightFog, 1 - sun);
+    if (this.rainLevel > 0.01) target.lerp(new THREE.Color('#8e9aa6'), this.rainLevel * 0.7);
+    this.fogTarget.lerp(target, Math.min(1, dt * 0.5));
+    (this.scene.fog as THREE.Fog).near = 45 - this.rainLevel * 20;
+    (this.scene.fog as THREE.Fog).far = 205 - this.rainLevel * 70;
+    // rain follows the camera
+    const mat = this.rain.material as THREE.LineBasicMaterial;
+    mat.opacity = this.rainLevel * 0.8;
+    this.rain.visible = this.rainLevel > 0.02;
+    if (this.rain.visible) {
+      this.rain.position.set(this.camera.position.x, 0, this.camera.position.z - 20);
+      const a = this.rainData;
+      for (let i = 0; i < 360; i++) {
+        const k = i * 6;
+        const fall = 18 * dt;
+        a[k + 1] -= fall; a[k + 4] -= fall;
+        if (a[k + 1] < 0) { a[k + 1] += 26; a[k + 4] += 26; }
+      }
+      (this.rain.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    }
   }
 
   private updateIntroCamera(dt: number) {
@@ -624,6 +755,11 @@ export class World {
     cam.lookAt(sim.x * 0.85, this.camY + 1.45, -9);
   }
 
+  /** Skip the clock forward (title screen, tests). */
+  setDay(t: number) {
+    this.dayT = ((t % 1) + 1) % 1;
+  }
+
   takeFlash() {
     const f = this.flash;
     this.flash = 0;
@@ -632,7 +768,7 @@ export class World {
 
   /** Put one of every instanced thing in view, so every shader (and shadow shader) compiles now, not mid-run. */
   warm(renderer: THREE.WebGLRenderer) {
-    const all = [...Object.values(this.pools), ...this.trains, this.coins, this.halos, this.poles, ...Object.values(this.powerCards), ...this.buildingPools, this.trees, this.benches, this.cops, ...this.walls, this.canopies, this.skyline, this.bridges, this.edicules];
+    const all = [...Object.values(this.pools), ...this.trains, ...this.noses, this.coins, this.halos, this.poles, ...Object.values(this.powerCards), this.keys, ...this.buildingPools, this.trees, this.benches, this.cops, ...this.walls, this.canopies, this.skyline, this.bridges, this.edicules];
     for (const p of all) {
       p.begin();
       m4.makeTranslation(0, 1, -6);

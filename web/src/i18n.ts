@@ -15,7 +15,7 @@ const S = {
     hintLaneKeys: '← → pour changer de voie', hintLaneTouch: 'Glisse à gauche ou à droite',
     hintRamp: 'Monte la rampe pour courir sur la rame',
     magnet: 'Aimant', shoes: 'Chaussures à ressorts', double: 'Score doublé', careful: 'Attention ! Encore un choc et tu es attrapé', mute: 'Couper le son', sound: 'Son',
-    mult: 'Multiplicateur', meters: 'm', lang: 'Langue', skip: 'Toucher pour passer',
+    mult: 'Multiplicateur', meters: 'm', lang: 'Langue', skip: 'Toucher pour passer', keys: 'clés', keyOne: 'clé', revive: 'Sauver', board: 'Planche',
   },
   en: {
     title: 'Métro IDF', tagline: 'Dodge the trains. Lose the guard.', play: 'PLAY', best: 'Best', coinsTotal: 'Tokens',
@@ -29,7 +29,7 @@ const S = {
     hintLaneKeys: 'Press ← → to dodge', hintLaneTouch: 'Swipe left or right to dodge',
     hintRamp: 'Run up the ramp onto the train',
     magnet: 'Magnet', shoes: 'Spring shoes', double: 'Double score', careful: 'Careful! One more hit and you are caught', mute: 'Mute', sound: 'Sound',
-    mult: 'Multiplier', meters: 'm', lang: 'Language', skip: 'Tap to skip',
+    mult: 'Multiplier', meters: 'm', lang: 'Language', skip: 'Tap to skip', keys: 'keys', keyOne: 'key', revive: 'Save me', board: 'Hoverboard',
   },
 };
 export type Key = keyof (typeof S)['fr'];

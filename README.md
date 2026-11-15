@@ -11,6 +11,15 @@ Ermont et Conflans, avec les vraies gares du réseau.
 
 ## Ce qu'il y a dans le jeu
 
+**Clés et sauvetage**
+- des clés dorées traînent le long des voies : on les ramasse en passant dessus ;
+- quand on se fait attraper, on peut **se sauver avec une clé** et repartir au même endroit ;
+- le prix **double à chaque sauvetage** dans la même partie (1, 2, 4, 8 clés…).
+
+**Planche**
+- power-up **planche** (hoverboard) : elle absorbe un choc et disparaît, comme dans les jeux du genre ;
+- en plus de l'aimant, des chaussures à ressorts et du score doublé.
+
 **Ouverture (scène 3D)**
 - le personnage s'approche d'une palissade le long des voies, secoue une bombe et tagge
   **ACAB** lettre par lettre, avec coulures et nuage de peinture ;
@@ -26,15 +35,31 @@ Ermont et Conflans, avec les vraies gares du réseau.
   de la voie, **entrées de métro** à Paris, horizon de tours.
 
 **Rames**
-- caisse crème, toit arrondi, bandeau fenêtres, portes violettes, ligne jaune ;
-- pare-brise avec visor, bandeau de destination (« MANTES-LA-JOLIE »), phares, attelage,
-  pantographe, bogies et roues.
+- trois livrées (Transilien crème/violet, TGV gris/bleu, métro blanc/turquoise) ;
+- **nez arrondi** avec pare-brise incliné, visière, bandeau de destination, phares cerclés,
+  attelage, toit arrondi, pantographe, bogies et roues ;
+- les rames qui arrivent **roulent maintenant à la vitesse du joueur** (et non plus au pas).
 
-**Gares réelles**
-- portiques avec le nom exact de la gare, rondel de la ligne J et « SORTIE · LIGNE J » ;
-- bandeau d'arrivée et carillon à chaque gare ;
-- tour complet joué en boucle : Paris → Houilles → Poissy → Villennes → Verneuil →
-  Les Mureaux → Épône → Mantes → Ermont → Conflans → retour.
+**Lignes et gares réelles**
+- **7 lignes** jouées en boucle, avec le bon rondel et la bonne couleur à chaque gare :
+  - **J** Saint-Lazare → Mantes-la-Jolie (via Poissy)
+  - **RER A** Nanterre-Préfecture → Val de Fontenay
+  - **Métro 1** Château de Vincennes → La Défense
+  - **Métro 8** Invalides → Créteil-Préfecture
+  - **Métro 9** Pont de Sèvres → Mairie de Montreuil
+  - **Tram T2** Porte de Versailles → Pont de Bezons
+  - **Tram T9** Porte de Choisy → Orly
+- portiques avec le nom exact de la gare, le rondel de la ligne et « SORTIE » ;
+- bandeau d'arrivée et carillon à chaque gare.
+
+**Repères**
+- la **tour Eiffel** se dresse au-dessus des toits sur le tronçon Trocadéro / Iéna / Alma ;
+- les **tours de La Défense** sur les stations du même nom.
+
+**Ciel, météo, heure**
+- cycle **jour → crépuscule → nuit → aube** (environ 7 minutes) : le soleil baisse, la ville
+  s'assombrit, les **lampadaires s'allument** ;
+- certaines gares sont sous la **pluie** (ciel gris, brume, averse).
 
 **Personnage**
 - personnage original (capuche turquoise, casquette rouge, sacoche), articulé et animé à la main :

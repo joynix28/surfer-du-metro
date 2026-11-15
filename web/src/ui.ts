@@ -13,6 +13,7 @@ export interface UIHandlers {
   toggleMute(): void;
   langChanged(): void;
   skipIntro(): void;
+  revive(): void;
 }
 
 const ICON = {
@@ -20,8 +21,9 @@ const ICON = {
   sound: '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   muted: '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   coin: '<span class="coin-ico"></span>',
+  key: '<svg viewBox="0 0 24 24"><path d="M14 3a6 6 0 0 0-5.6 8.2L3 16.6V21h4.4l1.4-1.4V18h1.6v-1.6h1.5l1.1-1.1A6 6 0 1 0 14 3zm2.2 4.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6z" fill="currentColor"/></svg>',
 };
-const POWER_ICON: Record<PowerKind, string> = { magnet: 'U', shoes: '⇧', double: '×2' };
+const POWER_ICON: Record<PowerKind, string> = { magnet: 'U', shoes: '⇧', double: '×2', board: '≋' };
 
 export class UI {
   root: HTMLElement;
@@ -31,7 +33,7 @@ export class UI {
   private toastTimer = 0;
   private stationTimer = 0;
   touch = matchMedia('(pointer: coarse)').matches;
-  private last = { score: -1, coins: -1, mult: -1, power: '' };
+  private last = { score: -1, coins: -1, mult: -1, power: '', keys: -1 };
 
   constructor(root: HTMLElement, h: UIHandlers, muted: boolean) {
     this.root = root;
@@ -43,7 +45,7 @@ export class UI {
         </div>
         <div class="hud-right">
           <div class="score" id="score">0</div>
-          <div class="hud-row"><span class="mult" id="mult">×1</span><span class="coins">${ICON.coin}<b id="coins">0</b></span></div>
+          <div class="hud-row"><span class="mult" id="mult">×1</span><span class="keys">${ICON.key}<b id="keys">0</b></span><span class="coins">${ICON.coin}<b id="coins">0</b></span></div>
           <div class="powers" id="powers"></div>
         </div>
         <div class="hint" id="hint"></div>
@@ -89,6 +91,7 @@ export class UI {
             <div><small data-k="distance"></small><b id="r-dist">0</b></div>
             <div><small data-k="best"></small><b id="r-best">0</b></div>
           </div>
+          <button class="big revive" id="btn-revive"></button>
           <button class="big" id="btn-again" data-k="again"></button>
           <button class="ghost" id="btn-home2" data-k="home"></button>
         </div>
@@ -102,6 +105,7 @@ export class UI {
     tap('btn-home', () => h.home());
     tap('btn-home2', () => h.home());
     tap('btn-again', () => h.restart());
+    tap('btn-revive', () => h.revive());
     tap('btn-mute', () => h.toggleMute());
     tap('btn-mute2', () => h.toggleMute());
     tap('intro-skip', () => h.skipIntro());
@@ -151,7 +155,11 @@ export class UI {
     this.el.bank.textContent = String(bank);
   }
 
-  hud(score: number, coins: number, mult: number, power: Record<PowerKind, number>) {
+  hud(score: number, coins: number, mult: number, power: Record<PowerKind, number>, keys = 0) {
+    if (keys !== this.last.keys) {
+      this.el.keys.textContent = String(keys);
+      this.last.keys = keys;
+    }
     if (score !== this.last.score) {
       this.el.score.textContent = String(score).padStart(6, '0');
       this.last.score = score;
@@ -195,9 +203,11 @@ export class UI {
   }
 
   /** The station board that slides in when the runner reaches a new stop. */
-  station(name: string, sub: string, ms = 3000) {
+  station(name: string, line: string, color: string, sub: string, ms = 3000) {
     this.el['station-name'].textContent = name;
     this.el['station-sub'].textContent = sub;
+    this.el['station-line'].textContent = line;
+    this.el['station-line'].style.background = color;
     const e = this.el.station;
     e.classList.remove('on');
     void e.offsetWidth;
@@ -213,7 +223,17 @@ export class UI {
     e.className = 'flash ' + kind;
   }
 
-  result(r: { score: number; coins: number; distance: number; best: number; newBest: boolean }) {
+  result(r: { score: number; coins: number; distance: number; best: number; newBest: boolean; reviveCost?: number; canRevive?: boolean }) {
+    const rb = this.el['btn-revive'];
+    if (r.reviveCost && r.reviveCost > 0) {
+      rb.style.display = '';
+      rb.classList.toggle('off', !r.canRevive);
+      const n = r.reviveCost;
+      (rb as HTMLButtonElement).disabled = !r.canRevive;
+      rb.innerHTML = `${t('revive')} · ${n} ${n > 1 ? t('keys') : t('keyOne')}`;
+    } else {
+      rb.style.display = 'none';
+    }
     this.el['r-score'].textContent = String(r.score);
     this.el['r-coins'].textContent = String(r.coins);
     this.el['r-dist'].textContent = r.distance + ' ' + t('meters');

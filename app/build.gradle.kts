@@ -10,8 +10,8 @@ android {
         applicationId = "com.joynix.metroidf"
         minSdk = 26
         targetSdk = 35
-        versionCode = 24
-        versionName = "2.0.0"
+        versionCode = 25
+        versionName = "2.1.0"
     }
     signingConfigs {
         if (canSign) {

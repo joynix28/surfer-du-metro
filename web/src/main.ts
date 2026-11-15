@@ -67,6 +67,7 @@ async function main() {
   const horned = new Set<number>();
   const passed = new Set<number>();
   let ambT = 9;
+  let shopReturn: Screen = 'start';
 
   let vw = 0, vh = 0;
   const resize = () => {
@@ -110,7 +111,8 @@ async function main() {
     world.player.setBoardColors(findBoard(meta.equip.board).deck, findBoard(meta.equip.board).stripe);
     world.setTheme(findTheme(meta.equip.theme));
   };
-  const ui = new UI(document.getElementById('ui')!, {
+  let ui: UI;
+  ui = new UI(document.getElementById('ui')!, {
     play: () => play(),
     skipIntro: () => skipIntro(),
     resume: () => resume(),
@@ -120,9 +122,15 @@ async function main() {
     toggleMute,
     langChanged: () => {},
     revive: () => revive(),
-    openShop: () => { audio.unlock(); audio.click(); ui.shopOpen(shopView()); },
-    closeShop: () => { if (state === 'shop') ui.show('start'); },
+    openShop: () => {
+      shopReturn = state === 'pause' ? 'pause' : 'start';
+      audio.unlock();
+      audio.click();
+      ui.shopOpen(shopView());
+    },
+    closeShop: () => ui.show(shopReturn),
     buy: (kind, id) => buy(kind, id),
+    buyUnit: (kind) => buyUnit(kind),
     equip: (kind, id) => { equipItem(kind, id); audio.click(); ui.shopRefresh(shopView()); },
     box: () => openBox(),
   }, audio.muted);
@@ -148,6 +156,17 @@ async function main() {
     equipItem(kind, id);
     audio.power();
     ui.note(`${nameOf(it)} !`);
+    ui.shopRefresh(shopView());
+  }
+  function buyUnit(kind: 'board' | 'key') {
+    const price = kind === 'board' ? 200 : 1500;
+    if (bank < price) { ui.note(t('notEnough')); audio.bump(); return; }
+    bank -= price;
+    save('bank', bank);
+    if (kind === 'board') meta.stock += 1;
+    else { keyBank += 1; save('keys', keyBank); }
+    saveMeta(meta);
+    audio.coin(2);
     ui.shopRefresh(shopView());
   }
   function openBox() {

@@ -17,6 +17,7 @@ export interface UIHandlers {
   revive(): void;
   openShop(): void;
   buy(kind: ShopItem['kind'], id: string): void;
+  buyUnit(kind: 'board' | 'key'): void;
   equip(kind: ShopItem['kind'], id: string): void;
   box(): void;
   closeShop(): void;
@@ -164,6 +165,7 @@ export class UI {
       const kind = card.dataset.kind || '';
       const id = card.dataset.id || '';
       if (kind === 'box') h.box();
+      else if (kind === 'unit-board' || kind === 'unit-key') h.buyUnit(kind === 'unit-board' ? 'board' : 'key');
       else if (card.classList.contains('owned')) h.equip(kind as ShopItem['kind'], id);
       else h.buy(kind as ShopItem['kind'], id);
     });
@@ -299,12 +301,24 @@ export class UI {
       grid.innerHTML = `<button class="card box" data-kind="box" data-id="box">
         <span class="sw boxico">?</span>
         <b>${t('box')}</b>
-        <small>${1500} ${t('coinOne')}</small>
+        <small>${1500} ${money}</small>
+      </button>
+      <button class="card unit" data-kind="unit-key" data-id="key">
+        <span class="sw keyico">${ICON.key}</span>
+        <b>${t('keyOne').charAt(0).toUpperCase() + t('keyOne').slice(1)} ×1</b>
+        <small>1500 ${money}</small>
       </button>`;
       return;
     }
     const list = this.tab === 'char' ? SKINS : this.tab === 'board' ? BOARDS : THEMES;
-    grid.innerHTML = list.map((it) => {
+    const unit = this.tab === 'board'
+      ? `<button class="card unit" data-kind="unit-board" data-id="board">
+          <span class="sw board" style="--a:#2a3550;--b:#3f6dff"></span>
+          <b>${t('board')} ×1</b>
+          <small>200 ${money}</small>
+        </button>`
+      : '';
+    grid.innerHTML = unit + list.map((it) => {
       const kind = this.tab === 'char' ? 'char' : this.tab === 'board' ? 'board' : 'theme';
       const own = kind === 'char' ? v.owned.char.includes(it.id) : kind === 'board' ? v.owned.board.includes(it.id) : v.owned.theme.includes(it.id);
       const eq = kind === 'char' ? v.equip.char === it.id : kind === 'board' ? v.equip.board === it.id : v.equip.theme === it.id;
